@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>embeds/telegramfunctionobject.cpp</file>
+        <file>embeds/telegramfunctionobject.h</file>
+        <file>embeds/telegramtypeobject.cpp</file>
+        <file>embeds/telegramtypeobject.h</file>
+    </qresource>
+</RCC>

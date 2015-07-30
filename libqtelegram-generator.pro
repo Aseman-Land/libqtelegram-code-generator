@@ -12,4 +12,15 @@ TARGET = libqtelegram-generator
 TEMPLATE = app
 
 
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    typegenerator.cpp \
+    functiongenerator.cpp \
+    abstractgenerator.cpp
+
+HEADERS += \
+    typegenerator.h \
+    functiongenerator.h \
+    abstractgenerator.h
+
+RESOURCES += \
+    resource.qrc
