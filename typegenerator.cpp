@@ -156,9 +156,7 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
     const QString &clssName = classCaseType(name);
 
     QString result;
-    result += "namespace Tg {\n";
-    result += "namespace Types {\n\n";
-    result += QString("class %1 : public TelegramTypeObject\n{\npublic:\n"
+    result += QString("class LIBQTELEGRAMSHARED_EXPORT %1 : public TelegramTypeObject\n{\npublic:\n"
                       "    enum %1Type {\n").arg(clssName);
 
     QString defaultType;
@@ -235,7 +233,6 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
     result += "    bool fetch(InboundPkt *in);\n    bool push(OutboundPkt *out) const;\n\n";
     result += QString("    bool operator ==(const %1 &b);\n\n").arg(clssName);
     result += privateResult + "};\n\n";
-    result += "}\n}\n\n";
 
     result = includes + "\n" + result;
     result = QString("#ifndef LQTG_TYPE_%1\n#define LQTG_TYPE_%1\n\n").arg(clssName.toUpper()) + result;
@@ -255,10 +252,10 @@ void TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTyp
     const QString &clssName = classCaseType(name);
 
     QString result;
-    result += QString("#include \"%1.h\"\n\n").arg(clssName.toLower());
-
-    result += "using namespace Tg;\n";
-    result += "using namespace Types;\n\n";
+    result += QString("#include \"%1.h\"\n").arg(clssName.toLower()) +
+        "#include \"core/inboundpkt.h\"\n"
+        "#include \"core/outboundpkt.h\"\n"
+        "#include \"util/tlvalues.h\"\n\n";
 
     QString resultTypes;
     QString resultEqualOperator;
@@ -326,8 +323,8 @@ void TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTyp
             else
                 resultEqualOperator += QString(" &&\n       m_%1 == b.m_%1").arg(cammelCase);
 
-            functions += QString("void Types::%1::set%2(%3%4) {\n    m_%4 = %4;\n}\n\n").arg(clssName, classCase, inputType, cammelCase);
-            functions += QString("%3 Types::%1::%2() const {\n    return m_%2;\n}\n\n").arg(clssName, cammelCase, type.name);
+            functions += QString("void %1::set%2(%3%4) {\n    m_%4 = %4;\n}\n\n").arg(clssName, classCase, inputType, cammelCase);
+            functions += QString("%3 %1::%2() const {\n    return m_%2;\n}\n\n").arg(clssName, cammelCase, type.name);
         }
     }
     if(resultEqualOperator.isEmpty())
@@ -335,19 +332,20 @@ void TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTyp
     else
         resultEqualOperator += ";";
 
-    result += QString("Types::%1::%1(%1Type classType, InboundPkt *in) :\n").arg(clssName);
+    result += QString("%1::%1(%1Type classType, InboundPkt *in) :\n").arg(clssName);
     result += resultTypes + QString("    m_classType(classType)\n");;
     result += "{\n    if(in) fetch(in);\n}\n\n";
-    result += QString("Types::%1::%1(InboundPkt *in) :\n").arg(clssName);
+    result += QString("%1::%1(InboundPkt *in) :\n").arg(clssName);
     result += resultTypes + QString("    m_classType(%1)\n").arg(defaultType);
     result += "{\n    fetch(in);\n}\n\n";
+    result += QString("%1::~%1() {\n}\n\n").arg(clssName);
     result += functions;
-    result += QString("bool Types::%1::operator ==(const %1 &b) {\n%2}\n\n").arg(clssName, shiftSpace(resultEqualOperator, 1));
+    result += QString("bool %1::operator ==(const %1 &b) {\n%2}\n\n").arg(clssName, shiftSpace(resultEqualOperator, 1));
 
-    result += QString("void Types::%1::setClassType(%1::%1Type classType) {\n    m_classType = classType;\n}\n\n").arg(clssName);
-    result += QString("Types::%1::%1Type Types::%1::classType() const {\n    return m_classType;\n}\n\n").arg(clssName);
-    result += QString("bool Types::%1::fetch(InboundPkt *in) {\n%2}\n\n").arg(clssName, shiftSpace(fetchFunction(name, modifiedTypes), 1));
-    result += QString("bool Types::%1::push(OutboundPkt *out) const {\n%2}\n\n").arg(clssName, shiftSpace(pushFunction(name, modifiedTypes), 1));
+    result += QString("void %1::setClassType(%1::%1Type classType) {\n    m_classType = classType;\n}\n\n").arg(clssName);
+    result += QString("%1::%1Type %1::classType() const {\n    return m_classType;\n}\n\n").arg(clssName);
+    result += QString("bool %1::fetch(InboundPkt *in) {\n%2}\n\n").arg(clssName, shiftSpace(fetchFunction(name, modifiedTypes), 1));
+    result += QString("bool %1::push(OutboundPkt *out) const {\n%2}\n\n").arg(clssName, shiftSpace(pushFunction(name, modifiedTypes), 1));
 
     QFile file(m_dst + "/" + clssName.toLower() + ".cpp");
     if(!file.open(QFile::WriteOnly))

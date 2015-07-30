@@ -180,7 +180,7 @@ void FunctionGenerator::extract(const QString &data)
 
             int ifIdx = typePart.indexOf("?");
             bool hasIf = (ifIdx != -1);
-            arg.type = translateType(hasIf? typePart.mid(ifIdx+1) : typePart, true, "types/");
+            arg.type = translateType(hasIf? typePart.mid(ifIdx+1) : typePart, false, "types/");
             if(hasIf)
             {
                 QString flagsPart = typePart.mid(0,ifIdx);
@@ -199,7 +199,7 @@ void FunctionGenerator::extract(const QString &data)
         fnc.type.typeCode = "0x" + code;
         fnc.className = className;
         fnc.functionName = functionName;
-        fnc.returnType = translateType(returnType, true, "types/");
+        fnc.returnType = translateType(returnType, false, "types/");
 
         types[className] << fnc;
     }
@@ -225,7 +225,7 @@ void FunctionGenerator::writeTypeHeader(const QString &name, const QList<Generat
     QString result;
     result += "namespace Tg {\n";
     result += "namespace Functions {\n\n";
-    result += QString("class %1 : public TelegramFunctionObject\n{\npublic:\n"
+    result += QString("class LIBQTELEGRAMSHARED_EXPORT %1 : public TelegramFunctionObject\n{\npublic:\n"
                       "    enum %1Function {\n").arg(clssName);
 
     QString includes = "#include \"telegramfunctionobject.h\"\n";
@@ -299,7 +299,10 @@ void FunctionGenerator::writeTypeClass(const QString &name, const QList<Generato
     const QString &clssName = classCaseType(name);
 
     QString result;
-    result += QString("#include \"%1.h\"\n\n").arg(clssName.toLower());
+    result += QString("#include \"%1.h\"\n").arg(clssName.toLower()) +
+            "#include \"core/inboundpkt.h\"\n"
+            "#include \"core/outboundpkt.h\"\n"
+            "#include \"util/tlvalues.h\"\n\n";
 
     result += "using namespace Tg;\n\n";
     result += QString("Functions::%1::%1() {\n}\n\n").arg(clssName);
