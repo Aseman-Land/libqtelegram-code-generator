@@ -161,7 +161,9 @@ void FunctionGenerator::extract(const QString &data)
         const QString className = classCaseType(fileName);
         const QString functionName = name.mid(pointIndex+1);
         const QString code = signature.mid(signKeyIndex+1);
-        const QString returnType = QString(parts.last()).remove(";");
+        QString returnType = QString(parts.last()).remove(";");
+        if(returnType == "Updates")
+            returnType = "UpdatesType";
         const QStringList args = parts.mid(1, parts.count()-3);
 
         GeneratorTypes::FunctionStruct fnc;
@@ -297,9 +299,7 @@ void FunctionGenerator::writeTypeClass(const QString &name, const QList<Generato
     const QString &clssName = classCaseType(name);
 
     QString result;
-    result += QString("#include \"%1.h\"\n").arg(clssName.toLower()) +
-            "#include \"core/inboundpkt.h\"\n"
-            "#include \"core/outboundpkt.h\"\n\n";
+    result += QString("#include \"%1.h\"\n\n").arg(clssName.toLower());
 
     result += "using namespace Tg;\n\n";
     result += QString("Functions::%1::%1() {\n}\n\n").arg(clssName);

@@ -255,11 +255,10 @@ void TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTyp
     const QString &clssName = classCaseType(name);
 
     QString result;
-    result += QString("#include \"%1.h\"\n").arg(clssName.toLower()) +
-            "#include \"core/inboundpkt.h\"\n"
-            "#include \"core/outboundpkt.h\"\n\n";
+    result += QString("#include \"%1.h\"\n\n").arg(clssName.toLower());
 
-    result += "using namespace Tg;\n\n";
+    result += "using namespace Tg;\n";
+    result += "using namespace Types;\n\n";
 
     QString resultTypes;
     QString resultEqualOperator;
@@ -343,10 +342,10 @@ void TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTyp
     result += resultTypes + QString("    m_classType(%1)\n").arg(defaultType);
     result += "{\n    fetch(in);\n}\n\n";
     result += functions;
-    result += QString("bool %1::operator ==(const %1 &b) {\n%2}\n\n").arg(clssName, shiftSpace(resultEqualOperator, 1));
+    result += QString("bool Types::%1::operator ==(const %1 &b) {\n%2}\n\n").arg(clssName, shiftSpace(resultEqualOperator, 1));
 
-    result += QString("void %1::setClassType(%1::%1Type classType) {\n    m_classType = classType;\n}\n\n").arg(clssName);
-    result += QString("Types::%1::%1Type %1::classType() const {\n    return m_classType;\n}\n\n").arg(clssName);
+    result += QString("void Types::%1::setClassType(%1::%1Type classType) {\n    m_classType = classType;\n}\n\n").arg(clssName);
+    result += QString("Types::%1::%1Type Types::%1::classType() const {\n    return m_classType;\n}\n\n").arg(clssName);
     result += QString("bool Types::%1::fetch(InboundPkt *in) {\n%2}\n\n").arg(clssName, shiftSpace(fetchFunction(name, modifiedTypes), 1));
     result += QString("bool Types::%1::push(OutboundPkt *out) const {\n%2}\n\n").arg(clssName, shiftSpace(pushFunction(name, modifiedTypes), 1));
 
@@ -444,7 +443,10 @@ void TypeGenerator::extract(const QString &data)
         const int signKeyIndex = signature.indexOf("#");
         const QString name = signature.mid(0,signKeyIndex);
         const QString code = signature.mid(signKeyIndex+1);
-        const QString structName = QString(parts.last()).remove(";");
+        QString structName = QString(parts.last()).remove(";");
+        if(structName == "Updates")
+            structName = "UpdatesType";
+
         const QStringList args = parts.mid(1, parts.count()-3);
 
         GeneratorTypes::TypeStruct type;
