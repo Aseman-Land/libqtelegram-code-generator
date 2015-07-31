@@ -119,6 +119,8 @@ QString FunctionGenerator::pushFunction(const QString &clssName, const QString &
     result += QString("out->appendInt(fnc%1%2);\n").arg(clssName, classCaseType(fncName));
     foreach(const GeneratorTypes::ArgStruct &arg, types)
     {
+        if(!arg.flagName.isEmpty())
+            result += QString("if(%1 & 1<<%2) ").arg(arg.flagName).arg(arg.flagValue);
         result += typeToPushFunction(cammelCaseType(arg.argName), arg.type.name, arg) + "\n";
     }
 
