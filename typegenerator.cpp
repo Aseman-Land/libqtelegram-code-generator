@@ -43,7 +43,7 @@ QString TypeGenerator::typeToFetchFunction(const QString &arg, const QString &ty
     if(type.contains("QList<"))
     {
         QString innerType = type.mid(6,type.length()-7);
-        baseResult += "if(in->fetchInt() != (qint32)TL_Vector) return false;\n";
+        baseResult += "if(in->fetchInt() != (qint32)CoreTypes::typeVector) return false;\n";
 
         baseResult += "qint32 " + arg + "_length = in->fetchInt();\n";
         baseResult += arg + ".clear();\n";
@@ -113,7 +113,7 @@ QString TypeGenerator::typeToPushFunction(const QString &arg, const QString &typ
     if(type.contains("QList<"))
     {
         QString innerType = type.mid(6,type.length()-7);
-        result += "out->appendInt(TL_Vector);\n";
+        result += "out->appendInt(CoreTypes::typeVector);\n";
 
         result += "out->appendInt(" + arg + ".count());\n";
         result += "for (qint32 i = 0; i < " + arg + ".count(); i++) {\n";
@@ -255,7 +255,7 @@ void TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTyp
     result += QString("#include \"%1.h\"\n").arg(clssName.toLower()) +
         "#include \"core/inboundpkt.h\"\n"
         "#include \"core/outboundpkt.h\"\n"
-        "#include \"util/tlvalues.h\"\n\n";
+        "#include \"../coretypes.h\"\n\n";
 
     QString resultTypes;
     QString resultEqualOperator;
@@ -427,11 +427,21 @@ void TypeGenerator::extract(const QString &data)
 
     QMap<QString, QList<GeneratorTypes::TypeStruct> > types;
     const QStringList &lines = QString(data).split("\n",QString::SkipEmptyParts);
+    bool hasAccess = false;
     foreach(const QString &line, lines)
     {
         const QString &l = line.trimmed();
-        if(l == "---functions---")
-            break;
+        if(l.left(3) == "---")
+        {
+            if(l == "---types---")
+                hasAccess = true;
+            else
+                hasAccess = false;
+
+            continue;
+        }
+        if(!hasAccess)
+            continue;
 
         const QStringList &parts = l.split(" ", QString::SkipEmptyParts);
         if(parts.count() < 3)

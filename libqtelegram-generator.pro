@@ -15,12 +15,14 @@ TEMPLATE = app
 SOURCES += main.cpp \
     typegenerator.cpp \
     functiongenerator.cpp \
-    abstractgenerator.cpp
+    abstractgenerator.cpp \
+    coretypesgenerator.cpp
 
 HEADERS += \
     typegenerator.h \
     functiongenerator.h \
-    abstractgenerator.h
+    abstractgenerator.h \
+    coretypesgenerator.h
 
 RESOURCES += \
     resource.qrc

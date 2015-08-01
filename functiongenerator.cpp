@@ -39,7 +39,7 @@ QString FunctionGenerator::typeToFetchFunction(const QString &arg, const QString
     if(type.contains("QList<"))
     {
         QString innerType = type.mid(6,type.length()-7);
-        baseResult += QString("if(in->fetchInt() != (qint32)TL_Vector) return %1;\n").arg(arg);
+        baseResult += QString("if(in->fetchInt() != (qint32)CoreTypes::typeVector) return %1;\n").arg(arg);
 
         baseResult += "qint32 " + arg + "_length = in->fetchInt();\n";
         baseResult += arg + ".clear();\n";
@@ -99,7 +99,7 @@ QString FunctionGenerator::typeToPushFunction(const QString &arg, const QString 
     if(type.contains("QList<"))
     {
         QString innerType = type.mid(6,type.length()-7);
-        result += "out->appendInt(TL_Vector);\n";
+        result += "out->appendInt(CoreTypes::typeVector);\n";
 
         result += "out->appendInt(" + arg + ".count());\n";
         result += "for (qint32 i = 0; i < " + arg + ".count(); i++) {\n";
@@ -136,16 +136,20 @@ void FunctionGenerator::extract(const QString &data)
 
     QMap<QString, QList<GeneratorTypes::FunctionStruct> > types;
     const QStringList &lines = QString(data).split("\n",QString::SkipEmptyParts);
-    bool functions = false;
+    bool hasAccess = false;
     foreach(const QString &line, lines)
     {
         const QString &l = line.trimmed();
-        if(l == "---functions---")
+        if(l.left(3) == "---")
         {
-            functions = true;
+            if(l == "---functions---")
+                hasAccess = true;
+            else
+                hasAccess = false;
+
             continue;
         }
-        if(!functions)
+        if(!hasAccess)
             continue;
 
         const QStringList &parts = l.split(" ", QString::SkipEmptyParts);
@@ -182,7 +186,7 @@ void FunctionGenerator::extract(const QString &data)
 
             int ifIdx = typePart.indexOf("?");
             bool hasIf = (ifIdx != -1);
-            arg.type = translateType(hasIf? typePart.mid(ifIdx+1) : typePart, false, "types/");
+            arg.type = translateType(hasIf? typePart.mid(ifIdx+1) : typePart, false, "telegram/types/");
             if(hasIf)
             {
                 QString flagsPart = typePart.mid(0,ifIdx);
@@ -201,7 +205,7 @@ void FunctionGenerator::extract(const QString &data)
         fnc.type.typeCode = "0x" + code;
         fnc.className = className;
         fnc.functionName = functionName;
-        fnc.returnType = translateType(returnType, false, "types/");
+        fnc.returnType = translateType(returnType, false, "telegram/types/");
 
         types[className] << fnc;
     }
@@ -304,7 +308,7 @@ void FunctionGenerator::writeTypeClass(const QString &name, const QList<Generato
     result += QString("#include \"%1.h\"\n").arg(clssName.toLower()) +
             "#include \"core/inboundpkt.h\"\n"
             "#include \"core/outboundpkt.h\"\n"
-            "#include \"util/tlvalues.h\"\n\n";
+            "#include \"../coretypes.h\"\n\n";
 
     result += "using namespace Tg;\n\n";
     result += QString("Functions::%1::%1() {\n}\n\n").arg(clssName);
@@ -360,7 +364,7 @@ void FunctionGenerator::writeType(const QString &name, const QList<GeneratorType
 void FunctionGenerator::writePri(const QStringList &types)
 {
     QString result = "\n";
-    QString headers = "HEADERS += \\\n    $$PWD/functions.h \\\n    $$PWD/telegramfunctionobject.cpp \\\n";
+    QString headers = "HEADERS += \\\n    $$PWD/functions.h \\\n    $$PWD/telegramfunctionobject.h \\\n";
     QString sources = "SOURCES += \\\n    $$PWD/telegramfunctionobject.cpp \\\n";
     for(int i=0; i<types.count(); i++)
     {

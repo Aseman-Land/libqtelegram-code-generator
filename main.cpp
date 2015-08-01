@@ -1,5 +1,6 @@
 #include "typegenerator.h"
 #include "functiongenerator.h"
+#include "coretypesgenerator.h"
 
 #include <QFile>
 #include <QDir>
@@ -9,11 +10,17 @@
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
-    if(app.arguments().count() < 3)
+    if(app.arguments().count() < 4)
+    {
+        qDebug() << "Bad input!\n"
+                    "Usage: libqtelegram-code-generator layer schema-path output-dir\n"
+                    "Example: libqtelegram-code-generator 29 /path/to/schema.txt /path/to/out/dir";
         return 0;
+    }
 
-    const QString schemaPath = app.arguments().at(1);
-    const QString destPath = app.arguments().at(2);
+    const QString layerVersion = app.arguments().at(1);
+    const QString schemaPath = app.arguments().at(2);
+    const QString destPath = app.arguments().at(3);
 
     QFile file(schemaPath);
     if(!file.open(QFile::ReadOnly))
@@ -23,8 +30,9 @@ int main(int argc, char *argv[])
 
     const QString &data = file.readAll();
 
-    TypeGenerator(destPath + "/types").extract(data);
-    FunctionGenerator(destPath + "/functions").extract(data);
+    TypeGenerator(destPath + "/telegram/types").extract(data);
+    FunctionGenerator(destPath + "/telegram/functions").extract(data);
+    CoreTypesGenerator(destPath + "/telegram/").extract(data, layerVersion);
 
     return 0;
 }
