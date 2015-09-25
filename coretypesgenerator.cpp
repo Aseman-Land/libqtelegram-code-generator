@@ -89,7 +89,7 @@ void CoreTypesGenerator::writePri()
     QString headers = "HEADERS += \\\n    $$PWD/coretypes.h \n";
 
     result += headers + "\n";
-    result = result.replace("$$PWD","telegram");
+//    result = result.replace("$$PWD","telegram");
 
     QFile file(m_dst + "/telegram.pri");
     if(!file.open(QFile::WriteOnly))

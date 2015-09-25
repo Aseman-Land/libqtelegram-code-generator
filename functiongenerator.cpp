@@ -377,7 +377,7 @@ void FunctionGenerator::writePri(const QStringList &types)
 
     result += headers + "\n";
     result += sources + "\n";
-    result = result.replace("$$PWD","telegram/functions");
+//    result = result.replace("$$PWD","telegram/functions");
 
     QFile file(m_dst + "/functions.pri");
     if(!file.open(QFile::WriteOnly))

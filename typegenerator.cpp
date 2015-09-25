@@ -378,7 +378,7 @@ void TypeGenerator::writePri(const QStringList &types)
 
     result += headers + "\n";
     result += sources + "\n";
-    result = result.replace("$$PWD","telegram/types");
+//    result = result.replace("$$PWD","telegram/types");
 
     QFile file(m_dst + "/types.pri");
     if(!file.open(QFile::WriteOnly))
