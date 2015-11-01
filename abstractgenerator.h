@@ -16,10 +16,11 @@ namespace GeneratorTypes
     class QtTypeStruct
     {
     public:
-        QtTypeStruct(): constRefrence(false){}
+        QtTypeStruct(): constRefrence(false), qtgType(false){}
         QString name;
         QStringList includes;
         bool constRefrence;
+        bool qtgType;
         QString defaultValue;
         QString originalType;
 
@@ -75,7 +76,7 @@ protected:
     QString fixTypeName(const QString &str);
     QString cammelCaseType(const QString &str);
     QString classCaseType(const QString &str);
-    GeneratorTypes::QtTypeStruct translateType(const QString &type, bool addNameSpace = false, const QString &prePath = QString());
+    GeneratorTypes::QtTypeStruct translateType(const QString &type, bool addNameSpace = false, const QString &prePath = QString(), const QString &postPath = QString());
 };
 
 #endif // ABSTRACTGENERATOR_H

@@ -58,7 +58,7 @@ QString AbstractGenerator::classCaseType(const QString &str)
     return result;
 }
 
-GeneratorTypes::QtTypeStruct AbstractGenerator::translateType(const QString &type, bool addNameSpace, const QString &prePath)
+GeneratorTypes::QtTypeStruct AbstractGenerator::translateType(const QString &type, bool addNameSpace, const QString &prePath, const QString &postPath)
 {
     GeneratorTypes::QtTypeStruct result;
     result.originalType = type;
@@ -116,8 +116,9 @@ GeneratorTypes::QtTypeStruct AbstractGenerator::translateType(const QString &typ
     else
     {
         result.name = QString(addNameSpace? "Types::" : "") + classCaseType(type);
-        result.includes << QString("#include \"%1\"").arg(prePath + classCaseType(type).toLower() + ".h");
+        result.includes << QString("#include \"%1\"").arg(prePath + classCaseType(type).toLower() + postPath + ".h");
         result.constRefrence = true;
+        result.qtgType = true;
     }
 
     return result;

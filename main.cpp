@@ -1,6 +1,7 @@
 #include "typegenerator.h"
 #include "functiongenerator.h"
 #include "coretypesgenerator.h"
+#include "typeobjectgenerator.h"
 
 #include <QFile>
 #include <QDir>
@@ -32,6 +33,7 @@ int main(int argc, char *argv[])
 
     TypeGenerator(destPath + "/telegram/types").extract(data);
     FunctionGenerator(destPath + "/telegram/functions").extract(data);
+    TypeObjectGenerator(destPath + "/telegram/objects").extract(data);
     CoreTypesGenerator(destPath + "/telegram/").extract(data, layerVersion);
 
     return 0;

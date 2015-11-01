@@ -85,7 +85,8 @@ void CoreTypesGenerator::write(const QMap<QString, QString> &map, const QString 
 
 void CoreTypesGenerator::writePri()
 {
-    QString result = "\ninclude(functions/functions.pri)\ninclude(types/types.pri)\n\n";
+    QString result = "\ninclude(functions/functions.pri)\ninclude(types/types.pri)"
+                     "\ninclude(objects/typeobjects.pri)\n\n";
     QString headers = "HEADERS += \\\n    $$PWD/coretypes.h \n";
 
     result += headers + "\n";

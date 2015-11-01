@@ -16,13 +16,15 @@ SOURCES += main.cpp \
     typegenerator.cpp \
     functiongenerator.cpp \
     abstractgenerator.cpp \
-    coretypesgenerator.cpp
+    coretypesgenerator.cpp \
+    typeobjectgenerator.cpp
 
 HEADERS += \
     typegenerator.h \
     functiongenerator.h \
     abstractgenerator.h \
-    coretypesgenerator.h
+    coretypesgenerator.h \
+    typeobjectgenerator.h
 
 RESOURCES += \
     resource.qrc
