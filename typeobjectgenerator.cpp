@@ -233,14 +233,16 @@ void TypeObjectGenerator::writeTypeHeader(const QString &name, const QList<Gener
                 if(addedIncludes.contains(inc))
                     continue;
 
-                includes += inc + "\n";
+                if(arg.type.qtgType)
+                    includes += inc + "\n";
+
                 addedIncludes.insert(inc);
             }
 
             if(arg.type.qtgType)
             {
                 privateSlotsResult += QString("    void core%1Changed();\n").arg(classCase);
-                privateResult += QString("    QPointer<%1Object> m_%2;\n").arg(classCase, cammelCase);
+                privateResult += QString("    QPointer<%1Object> m_%2;\n").arg(type.name, cammelCase);
             }
         }
     }
@@ -286,7 +288,7 @@ void TypeObjectGenerator::writeTypeClass(const QString &name, const QList<Genera
     QString resultPrivateSlots;
 
     QString typeSwitch = QString("    %1::%1Type result;\n    switch(classType) {\n").arg(clssName);
-    QString typeSwitchBack = QString("    int result;\n    switch(static_cast<qint64>(m_core.classType()) {\n");
+    QString typeSwitchBack = QString("    int result;\n    switch(static_cast<qint64>(m_core.classType())) {\n");
 
     QString defaultType;
     QMap<QString, QMap<QString,GeneratorTypes::ArgStruct> > properties;
@@ -354,8 +356,8 @@ void TypeObjectGenerator::writeTypeClass(const QString &name, const QList<Genera
             if(type.qtgType)
             {
                 resultTypes += QString("    m_%1(0),\n").arg(cammelCase);
-                resultConstructorTypes += QString("    m_%1 = new %2Object(m_core.%1(), this);\n"
-                                                  "    connect(m_%1, SIGNAL(coreChanged()), SLOT(core%2Changed()));\n").arg(cammelCase, classCase);
+                resultConstructorTypes += QString("    m_%1 = new %3Object(m_core.%1(), this);\n"
+                                                  "    connect(m_%1, SIGNAL(coreChanged()), SLOT(core%2Changed()));\n").arg(cammelCase, classCase, type.name);
 
                 functions += QString("void %1Object::set%2(%3 %4) {\n    if(m_%4 == %4) return;\n"
                                      "    if(m_%4) delete m_%4;\n    m_%4 = %4;\n"
@@ -419,7 +421,7 @@ void TypeObjectGenerator::writeType(const QString &name, const QList<GeneratorTy
 void TypeObjectGenerator::writePri(const QStringList &types)
 {
     QString result = "\n";
-    QString headers = "HEADERS += \\\n    $$PWD/typeobjects.h \\\n    $$PWD/telegramtypeqobject.h \\\n";
+    QString headers = "HEADERS += \\\n    $$PWD/typeobjects.h \\\n    $$PWD/telegramtypeqobject.h \\\n    $$PWD/qmltools.h \\\n";
     QString sources = "SOURCES += \\\n    $$PWD/telegramtypeqobject.cpp \\\n";
     for(int i=0; i<types.count(); i++)
     {
