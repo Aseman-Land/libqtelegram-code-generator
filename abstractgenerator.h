@@ -16,11 +16,12 @@ namespace GeneratorTypes
     class QtTypeStruct
     {
     public:
-        QtTypeStruct(): constRefrence(false), qtgType(false){}
+        QtTypeStruct(): constRefrence(false), qtgType(false), isList(false){}
         QString name;
         QStringList includes;
         bool constRefrence;
         bool qtgType;
+        bool isList;
         QString defaultValue;
         QString originalType;
 
@@ -29,16 +30,19 @@ namespace GeneratorTypes
                    includes == b.includes &&
                    constRefrence == b.constRefrence &&
                    defaultValue == b.defaultValue &&
-                   originalType == b.originalType;
+                   originalType == b.originalType &&
+                   isList == b.isList;
         }
     };
 
     class ArgStruct
     {
     public:
-        ArgStruct() : flagValue(0) {}
+        ArgStruct() : flagValue(0), flagDedicated(false), isFlag(false) {}
         QString flagName;
         int flagValue;
+        bool flagDedicated;
+        bool isFlag;
         GeneratorTypes::QtTypeStruct type;
         QString argName;
 
@@ -46,7 +50,9 @@ namespace GeneratorTypes
             return flagName == b.flagName &&
                    type == b.type &&
                    flagValue == b.flagValue &&
-                   argName == b.argName;
+                   argName == b.argName &&
+                   flagDedicated == b.flagDedicated &&
+                   isFlag == b.isFlag;
         }
     };
 

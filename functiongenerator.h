@@ -19,7 +19,7 @@ public:
 protected:
     QString typeToFetchFunction(const QString &arg, const QString &type, const GeneratorTypes::ArgStruct &argStruct);
     QString fetchFunction(const QString &clssName, const QString &fncName, const GeneratorTypes::ArgStruct &type);
-    QString typeToPushFunction(const QString &arg, const QString &type, const GeneratorTypes::ArgStruct &argStruct);
+    QString typeToPushFunction(const QString &arg, const QString &type, const GeneratorTypes::ArgStruct &argStruct, bool justFlagTest);
     QString pushFunction(const QString &clssName, const QString &fncName, const QList<GeneratorTypes::ArgStruct> &types);
     void writeTypeHeader(const QString &name, const QList<GeneratorTypes::FunctionStruct> &functions);
     void writeTypeClass(const QString &name, const QList<GeneratorTypes::FunctionStruct> &functions);

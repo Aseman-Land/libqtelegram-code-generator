@@ -54,8 +54,13 @@ QString FunctionGenerator::typeToFetchFunction(const QString &arg, const QString
 
     if(!argStruct.flagName.isEmpty())
     {
-        result += QString("if(m_%1 & 1<<%2) ").arg(argStruct.flagName).arg(argStruct.flagValue);
-        baseResult = "{\n" + shiftSpace(baseResult, 1) + "}";
+        if(argStruct.flagDedicated)
+            baseResult = arg + QString(" = (m_%1 & 1<<%2)").arg(argStruct.flagName).arg(argStruct.flagValue);
+        else
+        {
+            result += QString("if(m_%1 & 1<<%2) ").arg(argStruct.flagName).arg(argStruct.flagValue);
+            baseResult = "{\n" + shiftSpace(baseResult, 1) + "}";
+        }
     }
 
     result += baseResult;
@@ -75,9 +80,10 @@ QString FunctionGenerator::fetchFunction(const QString &clssName, const QString 
     return result;
 }
 
-QString FunctionGenerator::typeToPushFunction(const QString &arg, const QString &type, const GeneratorTypes::ArgStruct &argStruct)
+QString FunctionGenerator::typeToPushFunction(const QString &arg, const QString &type, const GeneratorTypes::ArgStruct &argStruct, bool justFlagTest)
 {
     QString result;
+
     if(type == "qint32")
         result += "out->appendInt(" + arg + ");";
     else
@@ -103,11 +109,25 @@ QString FunctionGenerator::typeToPushFunction(const QString &arg, const QString 
 
         result += "out->appendInt(" + arg + ".count());\n";
         result += "for (qint32 i = 0; i < " + arg + ".count(); i++) {\n";
-        result += "    " + typeToPushFunction(arg + "[i]", innerType, argStruct) + "\n}";
+        result += "    " + typeToPushFunction(arg + "[i]", innerType, argStruct, false) + "\n}";
     }
     else
     {
         result += "if(!" + arg + ".push(out)) return false;";
+    }
+
+    if(argStruct.flagDedicated || justFlagTest)
+        result = QString("if(%1 != 0) %2 = (1<<%3 | %2);")
+                .arg(arg + (argStruct.type.isList?".count()":""))
+                .arg(argStruct.flagName).arg(argStruct.flagValue);
+    else
+    if(!argStruct.flagName.isEmpty())
+    {
+        QString justIf = QString("if(%1 & 1<<%2) ").arg(argStruct.flagName).arg(argStruct.flagValue);
+        if(result.count("\n") > 0)
+            result = justIf + "{\n" + shiftSpace(result, 1) + "}";
+        else
+            result = justIf + result;
     }
 
     return result;
@@ -115,14 +135,29 @@ QString FunctionGenerator::typeToPushFunction(const QString &arg, const QString 
 
 QString FunctionGenerator::pushFunction(const QString &clssName, const QString &fncName, const QList<GeneratorTypes::ArgStruct> &types)
 {
+    QSet<QString> definedFlags;
+
     QString result;
     result += QString("out->appendInt(fnc%1%2);\n").arg(clssName, classCaseType(fncName));
-    foreach(const GeneratorTypes::ArgStruct &arg, types)
-    {
-        if(!arg.flagName.isEmpty())
-            result += QString("if(%1 & 1<<%2) ").arg(arg.flagName).arg(arg.flagValue);
-        result += typeToPushFunction(cammelCaseType(arg.argName), arg.type.name, arg) + "\n";
-    }
+    for(int i=0; i<2; i++)
+        foreach(const GeneratorTypes::ArgStruct &arg, types)
+        {
+            if(i == 0 && arg.flagName.isEmpty())
+                continue;
+            if(i == 1 && arg.flagDedicated)
+                continue;
+
+            if(!arg.flagName.isEmpty() && !definedFlags.contains(arg.flagName))
+            {
+                result += QString("\nqint32 %1 = 0;\n").arg(arg.flagName);
+                definedFlags.insert(arg.flagName);
+            }
+            if(arg.isFlag)
+                result += "\n";
+
+            result += typeToPushFunction(cammelCaseType(arg.argName), arg.type.name, arg,
+                                         i==0 ) + "\n";
+        }
 
     result += "return true;\n";
     result = shiftSpace(result, 1);
@@ -182,7 +217,10 @@ void FunctionGenerator::extract(const QString &data)
 
             QString typePart = str.mid(splitterIdx+1);
             if(typePart == "#")
+            {
                 typePart = "int";
+                arg.isFlag = true;
+            }
 
             int ifIdx = typePart.indexOf("?");
             bool hasIf = (ifIdx != -1);
@@ -195,6 +233,7 @@ void FunctionGenerator::extract(const QString &data)
                 {
                     arg.flagName = flagsPart.mid(0,flagSplitter);
                     arg.flagValue = flagsPart.mid(flagSplitter+1).toInt();
+                    arg.flagDedicated = (typePart.mid(ifIdx+1)=="true");
                 }
             }
 
@@ -271,6 +310,8 @@ void FunctionGenerator::writeTypeHeader(const QString &name, const QList<Generat
             }
 
             properties[f.functionName][arg.type.name] = arg;
+            if(arg.isFlag)
+                continue;
 
             const QString inputType = arg.type.constRefrence? "const " + arg.type.name + " &" : arg.type.name + " ";
             fncArgs += QString(", %1%2").arg(inputType, cammelCaseType(arg.argName));
@@ -335,6 +376,9 @@ void FunctionGenerator::writeTypeClass(const QString &name, const QList<Generato
             const GeneratorTypes::ArgStruct &arg = t.args[j];
 
             properties[f.functionName][arg.type.name] = arg;
+            if(arg.isFlag)
+                continue;
+
             const QString inputType = arg.type.constRefrence? "const " + arg.type.name + " &" : arg.type.name + " ";
 
             fncArgs += QString(", %1%2").arg(inputType, cammelCaseType(arg.argName));

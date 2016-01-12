@@ -14,6 +14,12 @@ QString AbstractGenerator::fixDeniedNames(const QString &str)
     if(str == "long")
         return "longValue";
     else
+    if(str == "private")
+        return "privateValue";
+    else
+    if(str == "public")
+        return "publicValue";
+    else
         return str;
 }
 
@@ -63,6 +69,12 @@ GeneratorTypes::QtTypeStruct AbstractGenerator::translateType(const QString &typ
     GeneratorTypes::QtTypeStruct result;
     result.originalType = type;
 
+    if(type == "true")
+    {
+        result.name = "bool";
+        result.defaultValue = "false";
+    }
+    else
     if(type == "int")
     {
         result.name = "qint32";
@@ -112,6 +124,7 @@ GeneratorTypes::QtTypeStruct AbstractGenerator::translateType(const QString &typ
         result.includes << innerType.includes;
         result.name = QString("QList<%1>").arg(innerType.name);
         result.constRefrence = true;
+        result.isList = true;
     }
     else
     {

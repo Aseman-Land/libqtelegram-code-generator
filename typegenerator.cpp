@@ -5,6 +5,7 @@
 #include <QMap>
 #include <QFile>
 #include <QDir>
+#include <QDebug>
 
 TypeGenerator::TypeGenerator(const QString &dest) :
     m_dst(dest)
@@ -77,6 +78,9 @@ QString TypeGenerator::fetchFunction(const QString &name, const QList<GeneratorT
         QString fetchPart;
         foreach(const GeneratorTypes::ArgStruct &arg, t.args)
         {
+            if(arg.flagDedicated)
+                continue;
+
             fetchPart += typeToFetchFunction("m_" + cammelCaseType(arg.argName), arg.type.name, arg) + "\n";
         }
 
@@ -139,6 +143,9 @@ QString TypeGenerator::pushFunction(const QString &name, const QList<GeneratorTy
         QString fetchPart;
         foreach(const GeneratorTypes::ArgStruct &arg, t.args)
         {
+            if(arg.flagDedicated)
+                continue;
+
             fetchPart += typeToPushFunction("m_" + cammelCaseType(arg.argName), arg.type.name, arg) + "\n";
         }
 
@@ -187,7 +194,7 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
     }
 
     result += QString("    %1(%1Type classType = %2, InboundPkt *in = 0);\n").arg(clssName, defaultType);
-    result += QString("    %1(InboundPkt *in);\n    virtual ~%1();\n\n").arg(clssName);
+    result += QString("    %1(InboundPkt *in);\n    %1(const Null&);\n    virtual ~%1();\n\n").arg(clssName);
 
     QString privateResult = "private:\n";
     QString includes = "#include \"telegramtypeobject.h\"\n\n#include <QMetaType>\n";
@@ -224,14 +231,17 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
                 addedIncludes.insert(inc);
             }
 
-            privateResult += QString("    %1 m_%2;\n").arg(type.name, cammelCase);
+            if(!arg.flagDedicated)
+                privateResult += QString("    %1 m_%2;\n").arg(type.name, cammelCase);
         }
     }
     privateResult += QString("    %1Type m_classType;\n").arg(clssName);
 
     result += QString("    void setClassType(%1Type classType);\n    %1Type classType() const;\n\n").arg(clssName);
     result += "    bool fetch(InboundPkt *in);\n    bool push(OutboundPkt *out) const;\n\n";
-    result += QString("    bool operator ==(const %1 &b);\n\n").arg(clssName);
+    result += QString("    bool operator ==(const %1 &b) const;\n\n").arg(clssName);
+    result += "    bool operator==(bool stt) const { return isNull() != stt; }\n"
+              "    bool operator!=(bool stt) const { return !operator ==(stt); }\n\n";
     result += privateResult + QString("};\n\nQ_DECLARE_METATYPE(%1)\n\n").arg(clssName);
 
     result = includes + "\n" + result;
@@ -258,7 +268,7 @@ void TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTyp
         "#include \"../coretypes.h\"\n\n";
 
     QString resultTypes;
-    QString resultEqualOperator;
+    QString resultEqualOperator = "return m_classType == b.m_classType";
 
     QString defaultType;
     QMap<QString, QMap<QString,GeneratorTypes::ArgStruct> > properties;
@@ -316,21 +326,27 @@ void TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTyp
             const GeneratorTypes::QtTypeStruct &type = arg.type;
             const QString inputType = type.constRefrence? "const " + type.name + " &" : type.name + " ";
 
-            if(!type.defaultValue.isEmpty())
-                resultTypes += QString("    m_%1(%2),\n").arg(cammelCase, type.defaultValue);
-            if(resultEqualOperator.isEmpty())
-                resultEqualOperator += QString("return m_%1 == b.m_%1").arg(cammelCase);
-            else
+            if(!arg.flagDedicated)
+            {
+                if(!type.defaultValue.isEmpty())
+                    resultTypes += QString("    m_%1(%2),\n").arg(cammelCase, type.defaultValue);
                 resultEqualOperator += QString(" &&\n       m_%1 == b.m_%1").arg(cammelCase);
+            }
 
-            functions += QString("void %1::set%2(%3%4) {\n    m_%4 = %4;\n}\n\n").arg(clssName, classCase, inputType, cammelCase);
-            functions += QString("%3 %1::%2() const {\n    return m_%2;\n}\n\n").arg(clssName, cammelCase, type.name);
+            if(arg.flagDedicated)
+            {
+                functions += QString("void %1::set%2(%3%4) {\n    if(%4) m_%5 = (m_%5 | (1<<%6));\n"
+                                     "    else m_%5 = (m_%5 & ~(1<<%6));\n}\n\n").arg(clssName, classCase, inputType, cammelCase, arg.flagName).arg(arg.flagValue);
+                functions += QString("%3 %1::%2() const {\n    return (m_%4 & 1<<%5);\n}\n\n").arg(clssName, cammelCase, type.name, arg.flagName).arg(arg.flagValue);
+            }
+            else
+            {
+                functions += QString("void %1::set%2(%3%4) {\n    m_%4 = %4;\n}\n\n").arg(clssName, classCase, inputType, cammelCase);
+                functions += QString("%3 %1::%2() const {\n    return m_%2;\n}\n\n").arg(clssName, cammelCase, type.name);
+            }
         }
     }
-    if(resultEqualOperator.isEmpty())
-        resultEqualOperator += "Q_UNUSED(b);\nreturn true;";
-    else
-        resultEqualOperator += ";";
+    resultEqualOperator += ";";
 
     result += QString("%1::%1(%1Type classType, InboundPkt *in) :\n").arg(clssName);
     result += resultTypes + QString("    m_classType(classType)\n");;
@@ -338,9 +354,12 @@ void TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTyp
     result += QString("%1::%1(InboundPkt *in) :\n").arg(clssName);
     result += resultTypes + QString("    m_classType(%1)\n").arg(defaultType);
     result += "{\n    fetch(in);\n}\n\n";
+    result += QString("%1::%1(const Null &null) :\n    TelegramTypeObject(null),\n").arg(clssName);
+    result += resultTypes + QString("    m_classType(%1)\n").arg(defaultType);
+    result += "{\n}\n\n";
     result += QString("%1::~%1() {\n}\n\n").arg(clssName);
     result += functions;
-    result += QString("bool %1::operator ==(const %1 &b) {\n%2}\n\n").arg(clssName, shiftSpace(resultEqualOperator, 1));
+    result += QString("bool %1::operator ==(const %1 &b) const {\n%2}\n\n").arg(clssName, shiftSpace(resultEqualOperator, 1));
 
     result += QString("void %1::setClassType(%1::%1Type classType) {\n    m_classType = classType;\n}\n\n").arg(clssName);
     result += QString("%1::%1Type %1::classType() const {\n    return m_classType;\n}\n\n").arg(clssName);
@@ -468,7 +487,10 @@ void TypeGenerator::extract(const QString &data)
 
             QString typePart = str.mid(splitterIdx+1);
             if(typePart == "#")
+            {
                 typePart = "int";
+                arg.isFlag = true;
+            }
 
             int ifIdx = typePart.indexOf("?");
             bool hasIf = (ifIdx != -1);
@@ -481,6 +503,7 @@ void TypeGenerator::extract(const QString &data)
                 {
                     arg.flagName = flagsPart.mid(0,flagSplitter);
                     arg.flagValue = flagsPart.mid(flagSplitter+1).toInt();
+                    arg.flagDedicated = (typePart.mid(ifIdx+1)=="true");
                 }
             }
 

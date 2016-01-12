@@ -5,6 +5,7 @@
 #include <QMap>
 #include <QFile>
 #include <QDir>
+#include <QDebug>
 
 TypeObjectGenerator::TypeObjectGenerator(const QString &dest) :
     m_dst(dest)
@@ -58,8 +59,13 @@ QString TypeObjectGenerator::typeToFetchFunction(const QString &arg, const QStri
 
     if(!argStruct.flagName.isEmpty())
     {
-        result += QString("if(m_%1 & 1<<%2) ").arg(argStruct.flagName).arg(argStruct.flagValue);
-        baseResult = "{\n" + shiftSpace(baseResult, 1) + "}";
+        if(argStruct.flagDedicated)
+            baseResult = arg + QString(" = (m_%1 & 1<<%2)").arg(argStruct.flagName).arg(argStruct.flagValue);
+        else
+        {
+            result += QString("if(m_%1 & 1<<%2) ").arg(argStruct.flagName).arg(argStruct.flagValue);
+            baseResult = "{\n" + shiftSpace(baseResult, 1) + "}";
+        }
     }
 
     result += baseResult;
@@ -139,6 +145,9 @@ QString TypeObjectGenerator::pushFunction(const QString &name, const QList<Gener
         QString fetchPart;
         foreach(const GeneratorTypes::ArgStruct &arg, t.args)
         {
+            if(arg.flagDedicated)
+                continue;
+
             fetchPart += typeToPushFunction("m_" + cammelCaseType(arg.argName), arg.type.name, arg) + "\n";
         }
 
@@ -251,10 +260,10 @@ void TypeObjectGenerator::writeTypeHeader(const QString &name, const QList<Gener
     privateResult += QString("    %1 m_core;\n").arg(clssName);
 
     bodyResult += QString("    void setClassType(int classType);\n    int classType() const;\n\n");
-    bodyResult += QString("    void setCore(const %1 &core);\n    %1 core(); const\n\n").arg(clssName);
+    bodyResult += QString("    void setCore(const %1 &core);\n    %1 core() const;\n\n").arg(clssName);
 
-    bodyResult += QString("    bool operator =(const %1 &b);\n").arg(clssName);
-    bodyResult += QString("    bool operator ==(const %1 &b);\n\n").arg(clssName);
+    bodyResult += QString("    %1Object &operator =(const %1 &b);\n").arg(clssName);
+    bodyResult += QString("    bool operator ==(const %1 &b) const;\n\n").arg(clssName);
     bodyResult += "Q_SIGNALS:\n" + signalsResult + "\n";
     bodyResult += privateSlotsResult + "\n" + privateResult + "};\n\n";
 
@@ -283,7 +292,7 @@ void TypeObjectGenerator::writeTypeClass(const QString &name, const QList<Genera
     QString resultTypes;
     QString resultConstructorTypes;
     QString resultEqualCheckOperator = "    return m_core == b;\n";
-    QString resultEqualOperator = "    if(m_core == b) return;\n    m_core.setCore(b);\n";
+    QString resultEqualOperator = "    if(m_core == b) return *this;\n    m_core = b;\n";
     QString resultEqualOperatorEmits;
     QString resultPrivateSlots;
 
@@ -381,7 +390,7 @@ void TypeObjectGenerator::writeTypeClass(const QString &name, const QList<Genera
             resultEqualOperatorEmits += QString("    Q_EMIT %1Changed();\n").arg(cammelCase);
         }
     }
-    resultEqualOperatorEmits += "    Q_EMIT coreChanged();\n";
+    resultEqualOperatorEmits += "    Q_EMIT coreChanged();\n    return *this;\n";
 
     result += QString("%1Object::%1Object(const %1 &core, QObject *parent) :\n").arg(clssName);
     result += QString("    TelegramTypeQObject(parent),\n") + resultTypes + QString("    m_core(core)\n");
@@ -391,8 +400,8 @@ void TypeObjectGenerator::writeTypeClass(const QString &name, const QList<Genera
     result += "{\n" + resultConstructorTypes + "}\n\n";
     result += QString("%1Object::~%1Object() {\n}\n\n").arg(clssName);
     result += functions;
-    result += QString("bool %1Object::operator =(const %1 &b) {\n%2\n%3}\n\n").arg(clssName, resultEqualOperator, resultEqualOperatorEmits);
-    result += QString("bool %1Object::operator ==(const %1 &b) {\n%2}\n\n").arg(clssName, shiftSpace(resultEqualCheckOperator, 1));
+    result += QString("%1Object &%1Object::operator =(const %1 &b) {\n%2\n%3}\n\n").arg(clssName, resultEqualOperator, resultEqualOperatorEmits);
+    result += QString("bool %1Object::operator ==(const %1 &b) const {\n%2}\n\n").arg(clssName, shiftSpace(resultEqualCheckOperator, 1));
 
     result += QString("void %1Object::setClassType(int classType) {\n%2\n    if(m_core.classType() == result) return;\n"
                       "    m_core.setClassType(result);\n    Q_EMIT classTypeChanged();\n    Q_EMIT coreChanged();\n}\n\n").arg(clssName, typeSwitch);
@@ -544,7 +553,10 @@ void TypeObjectGenerator::extract(const QString &data)
 
             QString typePart = str.mid(splitterIdx+1);
             if(typePart == "#")
+            {
                 typePart = "int";
+                arg.isFlag = true;
+            }
 
             int ifIdx = typePart.indexOf("?");
             bool hasIf = (ifIdx != -1);
@@ -557,6 +569,7 @@ void TypeObjectGenerator::extract(const QString &data)
                 {
                     arg.flagName = flagsPart.mid(0,flagSplitter);
                     arg.flagValue = flagsPart.mid(flagSplitter+1).toInt();
+                    arg.flagDedicated = (typePart.mid(ifIdx+1)=="true");
                 }
             }
 

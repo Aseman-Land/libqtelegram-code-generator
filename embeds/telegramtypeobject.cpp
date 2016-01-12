@@ -4,13 +4,19 @@
 
 #include "telegramtypeobject.h"
 
-TelegramTypeObject::TelegramTypeObject()
+TelegramTypeObject::TelegramTypeObject() :
+    mError(false),
+    mNull(false)
 {
+}
 
+TelegramTypeObject::TelegramTypeObject(const Null&) :
+    mError(false),
+    mNull(true)
+{
 }
 
 TelegramTypeObject::~TelegramTypeObject()
 {
-
 }
 

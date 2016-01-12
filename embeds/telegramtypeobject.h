@@ -6,8 +6,8 @@
 #define TELEGRAMTYPEOBJECT_H
 
 #ifdef LQTG_DISABLE_ASSERTS
-#define LQTG_FETCH_ASSERT
-#define LQTG_PUSH_ASSERT
+#define LQTG_FETCH_ASSERT setError(true)
+#define LQTG_PUSH_ASSERT setError(true)
 #else
 #include <QtGlobal>
 #define LQTG_FETCH_ASSERT qt_assert("x",__FILE__,__LINE__)
@@ -30,11 +30,28 @@ class OutboundPkt;
 class LIBQTELEGRAMSHARED_EXPORT TelegramTypeObject
 {
 public:
+    struct Null { };
+    static const Null null;
+
     TelegramTypeObject();
+    TelegramTypeObject(const Null&);
     ~TelegramTypeObject();
 
     virtual bool fetch(InboundPkt *in) = 0;
     virtual bool push(OutboundPkt *out) const = 0;
+
+    bool error() const { return mError; }
+    bool isNull() const { return mNull; }
+    bool operator==(bool stt) { return mNull != stt; }
+    bool operator!=(bool stt) { return !operator ==(stt); }
+
+protected:
+    void setError(bool stt) { mError = stt; }
+    void setNull(bool stt) { mNull = stt; }
+
+private:
+    bool mError;
+    bool mNull;
 };
 
 #endif // TELEGRAMTYPEOBJECT_H
