@@ -2,6 +2,8 @@
 #include "functiongenerator.h"
 #include "coretypesgenerator.h"
 #include "typeobjectgenerator.h"
+#include "apigenerator.h"
+#include "telegramcoregenerator.h"
 
 #include <QFile>
 #include <QDir>
@@ -31,10 +33,12 @@ int main(int argc, char *argv[])
 
     const QString &data = file.readAll();
 
-    TypeGenerator(destPath + "/telegram/types").extract(data);
-    FunctionGenerator(destPath + "/telegram/functions").extract(data);
-    TypeObjectGenerator(destPath + "/telegram/objects").extract(data);
-    CoreTypesGenerator(destPath + "/telegram/").extract(data, layerVersion);
+//    TypeGenerator(destPath + "/telegram/types").extract(data);
+//    FunctionGenerator(destPath + "/telegram/functions").extract(data);
+//    TypeObjectGenerator(destPath + "/telegram/objects").extract(data);
+//    CoreTypesGenerator(destPath + "/telegram/").extract(data, layerVersion);
+    ApiGenerator(destPath + "/telegram/").extract(data);
+    TelegramCoreGenerator(destPath + "/telegram/").extract(data);
 
     return 0;
 }

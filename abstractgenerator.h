@@ -83,6 +83,8 @@ protected:
     QString cammelCaseType(const QString &str);
     QString classCaseType(const QString &str);
     GeneratorTypes::QtTypeStruct translateType(const QString &type, bool addNameSpace = false, const QString &prePath = QString(), const QString &postPath = QString());
+    QMap<QString, QList<GeneratorTypes::TypeStruct> > extractTypes(const QString &data, const QString &objectsPostPath = QString());
+    QMap<QString, QList<GeneratorTypes::FunctionStruct> > extractFunctions(const QString &data);
 };
 
 #endif // ABSTRACTGENERATOR_H

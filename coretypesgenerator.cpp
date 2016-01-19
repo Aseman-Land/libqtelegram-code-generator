@@ -85,11 +85,12 @@ void CoreTypesGenerator::write(const QMap<QString, QString> &map, const QString 
 
 void CoreTypesGenerator::writePri()
 {
-    QString result = "\ninclude(functions/functions.pri)\ninclude(types/types.pri)"
+    QString result = "\nCONFIG += c++11\n\ninclude(functions/functions.pri)\ninclude(types/types.pri)"
                      "\ninclude(objects/typeobjects.pri)\n\n";
-    QString headers = "HEADERS += \\\n    $$PWD/coretypes.h \n";
+    QString headers = "HEADERS += \\\n    $$PWD/coretypes.h \\\n    $$PWD/telegramapi.h \\\n    $$PWD/telegramcore.h";
+    QString sources = "SOURCES += \\\n    $$PWD/telegramapi.cpp \\\n    $$PWD/telegramcore.cpp";
 
-    result += headers + "\n";
+    result += headers + "\n\n" + sources + "\n";
 //    result = result.replace("$$PWD","telegram");
 
     QFile file(m_dst + "/telegram.pri");

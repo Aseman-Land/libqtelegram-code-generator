@@ -6,5 +6,9 @@
         <file>embeds/telegramtypeobject.h</file>
         <file>embeds/telegramtypeqobject.cpp</file>
         <file>embeds/telegramtypeqobject.h</file>
+        <file>embeds/telegramapi.h</file>
+        <file>embeds/telegramapi.cpp</file>
+        <file>embeds/telegramcore.cpp</file>
+        <file>embeds/telegramcore.h</file>
     </qresource>
 </RCC>

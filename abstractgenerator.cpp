@@ -137,3 +137,163 @@ GeneratorTypes::QtTypeStruct AbstractGenerator::translateType(const QString &typ
     return result;
 }
 
+QMap<QString, QList<GeneratorTypes::TypeStruct> > AbstractGenerator::extractTypes(const QString &data, const QString &objectsPostPath)
+{
+    QMap<QString, QList<GeneratorTypes::TypeStruct> > types;
+    const QStringList &lines = QString(data).split("\n",QString::SkipEmptyParts);
+    bool hasAccess = false;
+    foreach(const QString &line, lines)
+    {
+        const QString &l = line.trimmed();
+        if(l.left(3) == "---")
+        {
+            if(l == QString("---types---") )
+                hasAccess = true;
+            else
+                hasAccess = false;
+
+            continue;
+        }
+        if(!hasAccess)
+            continue;
+
+        const QStringList &parts = l.split(" ", QString::SkipEmptyParts);
+        if(parts.count() < 3)
+            continue;
+
+        const QString signature = parts.first();
+        const int signKeyIndex = signature.indexOf("#");
+        const QString name = signature.mid(0,signKeyIndex);
+        const QString code = signature.mid(signKeyIndex+1);
+        QString structName = QString(parts.last()).remove(";");
+        if(structName == "Updates")
+            structName = "UpdatesType";
+
+        const QStringList args = parts.mid(1, parts.count()-3);
+
+        GeneratorTypes::TypeStruct type;
+        foreach(const QString &str, args)
+        {
+            GeneratorTypes::ArgStruct arg;
+            int splitterIdx = str.indexOf(":");
+
+            arg.argName = fixDeniedNames(str.mid(0,splitterIdx));
+
+            QString typePart = str.mid(splitterIdx+1);
+            if(typePart == "#")
+            {
+                typePart = "int";
+                arg.isFlag = true;
+            }
+
+            int ifIdx = typePart.indexOf("?");
+            bool hasIf = (ifIdx != -1);
+            arg.type = translateType(hasIf? typePart.mid(ifIdx+1) : typePart, false, QString(), objectsPostPath);
+            if(hasIf)
+            {
+                QString flagsPart = typePart.mid(0,ifIdx);
+                int flagSplitter = flagsPart.indexOf(".");
+                if(flagSplitter != -1)
+                {
+                    arg.flagName = flagsPart.mid(0,flagSplitter);
+                    arg.flagValue = flagsPart.mid(flagSplitter+1).toInt();
+                    arg.flagDedicated = (typePart.mid(ifIdx+1)=="true");
+                }
+            }
+
+            type.args << arg;
+        }
+
+        type.typeName = "type" + classCaseType(name);
+        type.typeCode = "0x" + code;
+
+        types[structName] << type;
+    }
+
+    return types;
+}
+
+QMap<QString, QList<GeneratorTypes::FunctionStruct> > AbstractGenerator::extractFunctions(const QString &data)
+{
+    QMap<QString, QList<GeneratorTypes::FunctionStruct> > functions;
+    const QStringList &lines = QString(data).split("\n",QString::SkipEmptyParts);
+    bool hasAccess = false;
+    foreach(const QString &line, lines)
+    {
+        const QString &l = line.trimmed();
+        if(l.left(3) == "---")
+        {
+            if(l == "---functions---")
+                hasAccess = true;
+            else
+                hasAccess = false;
+
+            continue;
+        }
+        if(!hasAccess)
+            continue;
+
+        const QStringList &parts = l.split(" ", QString::SkipEmptyParts);
+        if(parts.count() < 3)
+            continue;
+
+        const QString signature = parts.first();
+        const int signKeyIndex = signature.indexOf("#");
+        const QString name = signature.mid(0,signKeyIndex);
+        const int pointIndex = name.indexOf(".");
+        if(pointIndex < 1)
+            continue;
+
+        const QString fileName = name.mid(0, pointIndex);
+        const QString className = classCaseType(fileName);
+        const QString functionName = name.mid(pointIndex+1);
+        const QString code = signature.mid(signKeyIndex+1);
+        QString returnType = QString(parts.last()).remove(";");
+        if(returnType == "Updates")
+            returnType = "UpdatesType";
+        const QStringList args = parts.mid(1, parts.count()-3);
+
+        GeneratorTypes::FunctionStruct fnc;
+        foreach(const QString &str, args)
+        {
+            GeneratorTypes::ArgStruct arg;
+            int splitterIdx = str.indexOf(":");
+
+            arg.argName = fixDeniedNames(str.mid(0,splitterIdx));
+
+            QString typePart = str.mid(splitterIdx+1);
+            if(typePart == "#")
+            {
+                typePart = "int";
+                arg.isFlag = true;
+            }
+
+            int ifIdx = typePart.indexOf("?");
+            bool hasIf = (ifIdx != -1);
+            arg.type = translateType(hasIf? typePart.mid(ifIdx+1) : typePart, false, "telegram/types/");
+            if(hasIf)
+            {
+                QString flagsPart = typePart.mid(0,ifIdx);
+                int flagSplitter = flagsPart.indexOf(".");
+                if(flagSplitter != -1)
+                {
+                    arg.flagName = flagsPart.mid(0,flagSplitter);
+                    arg.flagValue = flagsPart.mid(flagSplitter+1).toInt();
+                    arg.flagDedicated = (typePart.mid(ifIdx+1)=="true");
+                }
+            }
+
+            fnc.type.args << arg;
+        }
+
+        fnc.type.typeName = "fnc" + classCaseType(name);
+        fnc.type.typeCode = "0x" + code;
+        fnc.className = className;
+        fnc.functionName = functionName;
+        fnc.returnType = translateType(returnType, false, "telegram/types/");
+
+        functions[className] << fnc;
+    }
+    return functions;
+}
+
