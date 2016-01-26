@@ -11,5 +11,7 @@
         <file>embeds/telegramcore.cpp</file>
         <file>embeds/telegramcore.h</file>
         <file>embeds/telegramcore_globals.h</file>
+        <file>embeds/telegramcustomtypeobject.cpp</file>
+        <file>embeds/telegramcustomtypeobject.h</file>
     </qresource>
 </RCC>

@@ -153,7 +153,7 @@ GeneratorTypes::QtTypeStruct AbstractGenerator::translateType(const QString &typ
     return result;
 }
 
-QMap<QString, QList<GeneratorTypes::TypeStruct> > AbstractGenerator::extractTypes(const QString &data, const QString &objectsPostPath)
+QMap<QString, QList<GeneratorTypes::TypeStruct> > AbstractGenerator::extractTypes(const QString &data, const QString &objectsPostPath, const QString &objectsPrePath, const QString &customHeader)
 {
     QMap<QString, QList<GeneratorTypes::TypeStruct> > types;
     const QStringList &lines = QString(data).split("\n",QString::SkipEmptyParts);
@@ -163,7 +163,7 @@ QMap<QString, QList<GeneratorTypes::TypeStruct> > AbstractGenerator::extractType
         const QString &l = line.trimmed();
         if(l.left(3) == "---")
         {
-            if(l == QString("---types---") )
+            if(l == QString("---%1---").arg(customHeader) )
                 hasAccess = true;
             else
                 hasAccess = false;
@@ -204,7 +204,7 @@ QMap<QString, QList<GeneratorTypes::TypeStruct> > AbstractGenerator::extractType
 
             int ifIdx = typePart.indexOf("?");
             bool hasIf = (ifIdx != -1);
-            arg.type = translateType(hasIf? typePart.mid(ifIdx+1) : typePart, false, QString(), objectsPostPath);
+            arg.type = translateType(hasIf? typePart.mid(ifIdx+1) : typePart, false, objectsPrePath, objectsPostPath);
             if(hasIf)
             {
                 QString flagsPart = typePart.mid(0,ifIdx);
