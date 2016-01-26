@@ -33,10 +33,10 @@ int main(int argc, char *argv[])
 
     const QString &data = file.readAll();
 
-//    TypeGenerator(destPath + "/telegram/types").extract(data);
-//    FunctionGenerator(destPath + "/telegram/functions").extract(data);
-//    TypeObjectGenerator(destPath + "/telegram/objects").extract(data);
-//    CoreTypesGenerator(destPath + "/telegram/").extract(data, layerVersion);
+    TypeGenerator(destPath + "/telegram/types").extract(data);
+    FunctionGenerator(destPath + "/telegram/functions").extract(data);
+    TypeObjectGenerator(destPath + "/telegram/objects").extract(data);
+    CoreTypesGenerator(destPath + "/telegram/").extract(data, layerVersion);
     ApiGenerator(destPath + "/telegram/").extract(data);
     TelegramCoreGenerator(destPath + "/telegram/").extract(data);
 

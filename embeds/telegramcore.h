@@ -11,6 +11,9 @@
 
 #include "telegramapi.h"
 
+#define TG_CALLBACK_SIGNATURE(RETURN_TYPE) \
+    qint64 msgId, RETURN_TYPE result, TelegramCore::CallbackError error
+
 class TelegramApi;
 class TelegramCore : public QObject
 {
@@ -42,11 +45,16 @@ public:
 
 Q_SIGNALS:
 /*! === signals === !*/
+    void error(qint64 id, qint32 errorCode, const QString &errorText, const QString &functionName);
 
 protected Q_SLOTS:
 /*! === events === !*/
+    virtual void onError(qint64 id, qint32 errorCode, const QString &errorText, const QString &functionName, const QVariant &attachedData, bool &accepted);
 
 protected:
+    qint64 retry(qint64 msgId);
+
+    void setApi(TelegramApi *api);
     QPointer<TelegramApi> mApi;
 
     template<typename T>
@@ -57,16 +65,25 @@ protected:
     }
 
     template<typename T>
+    Callback<T> callBackGet(qint64 msgId) {
+        void *ptr = mCallbacks.value(msgId);
+        if(!ptr) return 0;
+        Callback<T> *callBack = reinterpret_cast<Callback<T>*>(ptr);
+        return (*callBack);
+    }
+
+    template<typename T>
     void callBackCall(qint64 msgId, const T &result, const CallbackError &error = CallbackError()) {
+        Callback<T> callBack = callBackGet<T>(msgId);
         void *ptr = mCallbacks.take(msgId);
         if(!ptr) return;
-        Callback<T> *callBack = reinterpret_cast<Callback<T>*>(ptr);
-        (*callBack)(msgId, result, error);
-        delete callBack;
+        callBack(msgId, result, error);
+        delete reinterpret_cast<Callback<T>*>(ptr);
     }
 
 private:
     QHash<qint64, void*> mCallbacks;
+    QHash<qint64, QVariantHash> mRecallArgs;
 
     /*! === privates === !*/
 };

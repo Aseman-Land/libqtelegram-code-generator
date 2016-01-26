@@ -79,12 +79,11 @@ void ApiGenerator::writeHeader(const QMap<QString, QList<GeneratorTypes::Functio
                 if(arg.isFlag)
                     continue;
 
-                if(!arguments.isEmpty())
-                    arguments += ", ";
                 if(arg.type.constRefrence)
                     arguments += QString("const %1 &%2").arg(arg.type.name, arg.argName);
                 else
                     arguments += QString("%1 %2").arg(arg.type.name, arg.argName);
+                arguments += ", ";
             }
 
             QString returnArg;
@@ -93,9 +92,9 @@ void ApiGenerator::writeHeader(const QMap<QString, QList<GeneratorTypes::Functio
             else
                 returnArg = QString("%1 result").arg(t.returnType.name);
 
-            methodsResult += QString("qint64 %1(%2);").arg(functionName, arguments);
-            signalsResult += QString("void %1Answer(qint64 msgId, %2);").arg(functionName, returnArg);
-            errorsResult += QString("void %1Error(qint64 msgId, qint32 errorCode, const QString &errorText);").arg(functionName);
+            methodsResult += QString("qint64 %1(%2const QVariant &attachedData = QVariant(), Session *session = 0);").arg(functionName, arguments);
+            signalsResult += QString("void %1Answer(qint64 msgId, %2, const QVariant &attachedData);").arg(functionName, returnArg);
+            errorsResult += QString("void %1Error(qint64 msgId, qint32 errorCode, const QString &errorText, const QVariant &attachedData);").arg(functionName);
             queriesResult += QString("QueryMethods %1Methods;").arg(functionName);
             answersResult += QString("void on%1Answer(Query *q, InboundPkt &inboundPkt);").arg(classCaseType(functionName));
             answerErrorsResult += QString("void on%1Error(Query *q, qint32 errorCode, const QString &errorText);").arg(classCaseType(functionName));
@@ -157,14 +156,14 @@ void ApiGenerator::writeCpp(const QMap<QString, QList<GeneratorTypes::FunctionSt
                     continue;
 
                 argumentNames += ", ";
-                if(!arguments.isEmpty())
-                    arguments += ", ";
 
                 argumentNames += arg.argName;
                 if(arg.type.constRefrence)
                     arguments += QString("const %1 &%2").arg(arg.type.name, arg.argName);
                 else
                     arguments += QString("%1 %2").arg(arg.type.name, arg.argName);
+
+                arguments += ", ";
             }
 
             QString returnArg;
@@ -173,26 +172,30 @@ void ApiGenerator::writeCpp(const QMap<QString, QList<GeneratorTypes::FunctionSt
             else
                 returnArg = QString("const %1 result").arg(t.returnType.name);
 
-            QString methodInner = QString("CHECK_SESSION\n"
+            QString methodInner = QString("if(!session) session = mMainSession;\n"
+                                          "CHECK_SESSION(session)\n"
                                           "DEBUG_FUNCTION\n"
                                           "OutboundPkt p(mSettings);\n"
-                                          "INIT_MAIN_CONNECTION\n"
+                                          "INIT_MAIN_CONNECTION(session)\n"
                                           "Functions::%1::%2(&p%3);\n"
-                                          "return mMainSession->sendQuery(p, &%4Methods, QVariant(), \"%1->%2\" );").arg(name)
+                                          "return session->sendQuery(p, &%4Methods, attachedData, \"%1->%2\" );").arg(name)
                                   .arg(t.functionName).arg(argumentNames).arg(functionName);
 
             QString answersInnter = QString("%1 = Functions::%2::%3Result(&inboundPkt);\n" +
                                             QString(t.returnType.qtgType?
-                                            "if(result.error())\n    Q_EMIT %4Error(q->msgId(), -1, \"LIBQTELEGRAM_INTERNAL_ERROR\");\n"
-                                            "else\n    ":"") +
-                                            "Q_EMIT %4Answer(q->msgId(), result);")
+                                            QString("if(result.error())\n    on%1Error(q, -1, \"LIBQTELEGRAM_INTERNAL_ERROR\");\n"
+                                            "else\n    ").arg(classCase):QString()) +
+                                            "Q_EMIT %4Answer(q->msgId(), result, q->extra());")
                                   .arg(returnArg, name, t.functionName, functionName);
 
-            QString errorsInnter = QString("Q_EMIT %1Error(q->msgId(), errorCode, errorText);").arg(functionName);
+            QString errorsInnter = QString("bool accepted = false;\n"
+                                           "onError(q, errorCode, errorText, q->extra(), accepted);\n"
+                                           "if(!accepted)\n"
+                                           "    Q_EMIT %1Error(q->msgId(), errorCode, errorText, q->extra());\n").arg(functionName);
 
             constructorsResult += QString("%1Methods.onAnswer = &TelegramApi::on%2Answer;\n"
                                           "%1Methods.onError = &TelegramApi::on%2Error;").arg(functionName, classCase);
-            methodsResult += QString("qint64 TelegramApi::%1(%2) {\n%3}\n\n").arg(functionName, arguments, shiftSpace(methodInner, 1))
+            methodsResult += QString("qint64 TelegramApi::%1(%2const QVariant &attachedData, Session *session) {\n%3}\n\n").arg(functionName, arguments, shiftSpace(methodInner, 1))
                            + QString("void TelegramApi::on%1Answer(Query *q, InboundPkt &inboundPkt) {\n%2}\n\n").arg(classCase, shiftSpace(answersInnter, 1))
                            + QString("void TelegramApi::on%1Error(Query *q, qint32 errorCode, const QString &errorText) {\n%2}\n").arg(classCase, shiftSpace(errorsInnter, 1));
         }

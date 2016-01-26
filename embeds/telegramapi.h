@@ -22,21 +22,14 @@ public:
 /*! === methods === !*/
 Q_SIGNALS:
 /*! === signals === !*/
-    void error(qint64 msgId, qint32 errorCode, const QString &errorText, const QString &functionName);
-    void errorRetry(qint64 msgId, qint32 errorCode, const QString &errorText);
-
-private:
-    qint64 uploadSaveFilePart(Session *session, qint64 fileId, qint32 filePart, const QByteArray &bytes);
-    qint64 uploadSaveBigFilePart(Session *session, qint64 fileId, qint32 filePart, qint32 fileTotalParts, const QByteArray &bytes);
-    qint64 uploadGetFile(Session *session, const InputFileLocation &location, qint32 offset = 0, qint32 limit = BLOCK);
+    void error(qint64 msgId, qint32 errorCode, const QString &errorText, const QString &functionName, const QVariant &attachedData, bool &accepted);
 
 private:
     Settings *mSettings;
     CryptoUtils *mCrypto;
 
 /*! === privates === !*/
-    void onError(Query *q, qint32 errorCode, const QString &errorText);
-    void onErrorRetry(Query *q, qint32 errorCode, const QString &errorText);
+    void onError(Query *q, qint32 errorCode, const QString &errorText, const QVariant &attachedData, bool &accepted);
 };
 
 #endif // TELEGRAMAPI_H

@@ -366,13 +366,13 @@ void TypeObjectGenerator::writeTypeClass(const QString &name, const QList<Genera
             {
                 resultTypes += QString("    m_%1(0),\n").arg(cammelCase);
                 resultConstructorTypes += QString("    m_%1 = new %3Object(m_core.%1(), this);\n"
-                                                  "    connect(m_%1, SIGNAL(coreChanged()), SLOT(core%2Changed()));\n").arg(cammelCase, classCase, type.name);
+                                                  "    connect(m_%1.data(), &%3Object::coreChanged, this, &%4Object::core%2Changed);\n").arg(cammelCase, classCase, type.name, clssName);
 
                 functions += QString("void %1Object::set%2(%3 %4) {\n    if(m_%4 == %4) return;\n"
                                      "    if(m_%4) delete m_%4;\n    m_%4 = %4;\n"
                                      "    if(m_%4) {\n        m_%4->setParent(this);\n        m_core.set%2(m_%4->core());\n"
-                                     "        connect(m_%4, SIGNAL(coreChanged()), SLOT(core%2Changed()));\n    }\n"
-                                     "    Q_EMIT %4Changed();\n    Q_EMIT coreChanged();\n}\n\n").arg(clssName, classCase, objectType, cammelCase);
+                                     "        connect(m_%4.data(), &%5Object::coreChanged, this, &%1Object::core%2Changed);\n    }\n"
+                                     "    Q_EMIT %4Changed();\n    Q_EMIT coreChanged();\n}\n\n").arg(clssName, classCase, objectType, cammelCase, type.name);
                 functions += QString("%3 %1Object::%2() const {\n    return m_%2;\n}\n\n").arg(clssName, cammelCase, objectInputType);
 
                 resultEqualOperator += QString("    m_%1->setCore(b.%1());\n").arg(cammelCase);

@@ -16,14 +16,14 @@ Q_LOGGING_CATEGORY(TG_CORE_API, "tg.core.api")
 #define DEBUG_FUNCTION \
     qCDebug(TG_CORE_API) << __LINE__ << __FUNCTION__;
 
-#define CHECK_SESSION \
-    if(!mMainSession) \
+#define CHECK_SESSION(SESSION) \
+    if(!SESSION) \
         return 0;
 
-#define INIT_MAIN_CONNECTION \
-    if (mMainSession->initConnectionNeeded()) { \
+#define INIT_MAIN_CONNECTION(SESSION) \
+    if (SESSION->initConnectionNeeded()) { \
         p.initConnection(); \
-        mMainSession->setInitConnectionNeeded(false); \
+        SESSION->setInitConnectionNeeded(false); \
     }
 
 using namespace Tg;
@@ -40,38 +40,6 @@ TelegramApi::~TelegramApi() {
 }
 
 /*! === methods === !*/
-
-qint64 TelegramApi::uploadSaveFilePart(Session *session, qint64 fileId, qint32 filePart, const QByteArray &bytes) {
-    Q_ASSERT(session);
-    OutboundPkt p(mSettings);
-    if (session->initConnectionNeeded()) {
-        p.initConnection();
-        session->setInitConnectionNeeded(false);
-    }
-    Functions::Upload::saveFilePart(&p, fileId, filePart, bytes);
-    QVariant extra = fileId;
-    return session->sendQuery(p, &uploadSaveFilePartMethods, extra);
-}
-
-qint64 TelegramApi::uploadSaveBigFilePart(Session *session, qint64 fileId, qint32 filePart, qint32 fileTotalParts, const QByteArray &bytes) {
-    Q_ASSERT(session);
-    OutboundPkt p(mSettings);
-    if (session->initConnectionNeeded()) {
-        p.initConnection();
-        session->setInitConnectionNeeded(false);
-    }
-    Functions::Upload::saveBigFilePart(&p, fileId, filePart, fileTotalParts, bytes);
-    QVariant extra = fileId;
-    return session->sendQuery(p, &uploadSaveBigFilePartMethods, extra);
-}
-
-qint64 TelegramApi::uploadGetFile(Session *session, const InputFileLocation &location, qint32 offset, qint32 limit) {
-    Q_ASSERT(session);
-    OutboundPkt p(mSettings);
-    if (session->initConnectionNeeded()) {
-        p.initConnection();
-        session->setInitConnectionNeeded(false);
-    }
-    Functions::Upload::getFile(&p, location, offset, limit);
-    return session->sendQuery(p, &uploadGetFileMethods, QVariant(), __FUNCTION__ );
+void TelegramApi::onError(Query *q, qint32 errorCode, const QString &errorText, const QVariant &attachedData, bool &accepted) {
+    Q_EMIT error(q->msgId(), errorCode, errorText, q->name(), attachedData, accepted);
 }

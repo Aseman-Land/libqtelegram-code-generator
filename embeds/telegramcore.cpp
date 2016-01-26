@@ -8,10 +8,37 @@
 TelegramCore::TelegramCore(QObject *parent) :
     QObject(parent)
 {
-/*! === constructor === !*/
+}
+
+void TelegramCore::setApi(TelegramApi *api)
+{
+    mApi = api;
+
+/*! === connects === !*/
+    connect(api, &TelegramApi::error, this, &TelegramCore::onError);
 }
 
 /*! === methods === !*/
+
+void TelegramCore::onError(qint64 id, qint32 errorCode, const QString &errorText, const QString &functionName, const QVariant &attachedData, bool &accepted)
+{
+    Q_EMIT error(id, errorCode, errorText, functionName);
+    Q_UNUSED(accepted)
+    Q_UNUSED(attachedData)
+}
+
+qint64 TelegramCore::retry(qint64 mid)
+{
+    qint64 result = 0;
+    if(!mRecallArgs.contains(mid))
+        return result;
+    const QVariantHash &args = mRecallArgs.take(mid);
+    const QString &functionName = args.value("").toString();
+    if(functionName.isEmpty())
+        return result;
+/*! === retries === !*/
+    return result;
+}
 
 TelegramCore::~TelegramCore()
 {
