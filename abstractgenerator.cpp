@@ -55,6 +55,22 @@ QString AbstractGenerator::cammelCaseType(const QString &str)
     return result;
 }
 
+QString AbstractGenerator::usCaseType(const QString &str)
+{
+    QString result = fixTypeName(str);
+    for(int i=0; i<result.length(); i++)
+    {
+        QChar ch = result[i];
+        if(ch.isUpper())
+        {
+            result.replace(i, 1, QString("_") + ch.toLower());
+            i++;
+        }
+    }
+
+    return result;
+}
+
 QString AbstractGenerator::classCaseType(const QString &str)
 {
     QString result = cammelCaseType(str);

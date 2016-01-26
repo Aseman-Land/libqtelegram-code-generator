@@ -185,13 +185,13 @@ void ApiGenerator::writeCpp(const QMap<QString, QList<GeneratorTypes::FunctionSt
                                             QString(t.returnType.qtgType?
                                             QString("if(result.error())\n    on%1Error(q, -1, \"LIBQTELEGRAM_INTERNAL_ERROR\");\n"
                                             "else\n    ").arg(classCase):QString()) +
-                                            "Q_EMIT %4Answer(q->msgId(), result, q->extra());")
+                                            "Q_EMIT %4Answer(q->mainMsgId(), result, q->extra());")
                                   .arg(returnArg, name, t.functionName, functionName);
 
             QString errorsInnter = QString("bool accepted = false;\n"
                                            "onError(q, errorCode, errorText, q->extra(), accepted);\n"
                                            "if(!accepted)\n"
-                                           "    Q_EMIT %1Error(q->msgId(), errorCode, errorText, q->extra());\n").arg(functionName);
+                                           "    Q_EMIT %1Error(q->mainMsgId(), errorCode, errorText, q->extra());\n").arg(functionName);
 
             constructorsResult += QString("%1Methods.onAnswer = &TelegramApi::on%2Answer;\n"
                                           "%1Methods.onError = &TelegramApi::on%2Error;").arg(functionName, classCase);

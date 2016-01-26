@@ -81,6 +81,7 @@ protected:
     QString fixDeniedNames(const QString &str);
     QString fixTypeName(const QString &str);
     QString cammelCaseType(const QString &str);
+    QString usCaseType(const QString &str);
     QString classCaseType(const QString &str);
     GeneratorTypes::QtTypeStruct translateType(const QString &type, bool addNameSpace = false, const QString &prePath = QString(), const QString &postPath = QString());
     QMap<QString, QList<GeneratorTypes::TypeStruct> > extractTypes(const QString &data, const QString &objectsPostPath = QString());

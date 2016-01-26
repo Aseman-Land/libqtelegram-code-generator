@@ -17,6 +17,7 @@ void TelegramCoreGenerator::extract(const QString &data)
 {
     QMap<QString, QList<GeneratorTypes::FunctionStruct> > functions = extractFunctions(data);
     writeHeader(functions);
+    writeGlobals(functions);
     writeCpp(functions);
 }
 
@@ -104,6 +105,44 @@ void TelegramCoreGenerator::writeHeader(const QMap<QString, QList<GeneratorTypes
 
 
     QFile outFile(m_dst + "/telegramcore.h");
+    outFile.open(QFile::WriteOnly);
+    outFile.write(result.toUtf8());
+    outFile.close();
+}
+
+void TelegramCoreGenerator::writeGlobals(const QMap<QString, QList<GeneratorTypes::FunctionStruct> > &functions)
+{
+    QFile file(":/embeds/telegramcore_globals.h");
+    file.open(QFile::ReadOnly);
+
+    QString headerOrgData = file.readAll();
+
+    QString result = headerOrgData;
+    QString macrosResult;
+
+    QMapIterator<QString, QList<GeneratorTypes::FunctionStruct> > i(functions);
+    while(i.hasNext())
+    {
+        i.next();
+        if(!macrosResult.isEmpty())
+            macrosResult += "\n";
+
+        const QString &name = i.key();
+        const QList<GeneratorTypes::FunctionStruct> &types = i.value();
+        foreach(const GeneratorTypes::FunctionStruct &t, types)
+        {
+            if(!macrosResult.isEmpty())
+                macrosResult += "\n";
+
+            QString functionName = name.toLower() + t.functionName[0].toUpper() + t.functionName.mid(1);
+            macrosResult += QString("#define TG_%1_CALLBACK \\\n    TG_CALLBACK_SIGNATURE(%2)").arg(usCaseType(functionName).toUpper(), t.returnType.name);
+        }
+    }
+
+    result.replace("/*! === macros === !*/", macrosResult);
+
+
+    QFile outFile(m_dst + "/telegramcore_globals.h");
     outFile.open(QFile::WriteOnly);
     outFile.write(result.toUtf8());
     outFile.close();

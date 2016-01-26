@@ -10,5 +10,6 @@
         <file>embeds/telegramapi.cpp</file>
         <file>embeds/telegramcore.cpp</file>
         <file>embeds/telegramcore.h</file>
+        <file>embeds/telegramcore_globals.h</file>
     </qresource>
 </RCC>
