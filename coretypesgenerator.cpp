@@ -87,7 +87,8 @@ void CoreTypesGenerator::writePri()
 {
     QString result = "\nCONFIG += c++11\n\ninclude(functions/functions.pri)"
                      "\ninclude(types/types.pri)\ninclude(customtypes/customtypes.pri)\n"
-                     "\ninclude(objects/typeobjects.pri)\n\n";
+                     "\ncontains(CONFIG, typeobjects) {\n"
+                     "    include(objects/typeobjects.pri)\n}\n\n";
 
     QString headers = "HEADERS += \\\n    $$PWD/coretypes.h \\\n    $$PWD/telegramapi.h \\\n    "
                       "$$PWD/telegramcore.h \\\n    $$PWD/telegramcore_globals.h";
