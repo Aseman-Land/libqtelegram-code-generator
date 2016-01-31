@@ -44,6 +44,8 @@ public:
     static qint32 timeOut() { return mTimeOut; }
     static void setTimeOut(const qint32 &timeOut) { mTimeOut = timeOut; }
 
+    virtual void init() = 0;
+
 /*! === methods === !*/
 
 Q_SIGNALS:
