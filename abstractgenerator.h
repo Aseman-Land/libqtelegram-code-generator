@@ -62,6 +62,7 @@ namespace GeneratorTypes
         QString typeName;
         QString typeCode;
         QList<ArgStruct> args;
+        QString code;
     };
 
     class FunctionStruct
@@ -71,6 +72,7 @@ namespace GeneratorTypes
         QString functionName;
         QString className;
         QtTypeStruct returnType;
+        QString code;
     };
 }
 
@@ -82,7 +84,9 @@ protected:
     QString fixTypeName(const QString &str);
     QString cammelCaseType(const QString &str);
     QString usCaseType(const QString &str);
+    QString undoCase(const QString &str);
     QString classCaseType(const QString &str);
+    QString unclassCaseType(const QString &str);
     GeneratorTypes::QtTypeStruct translateType(const QString &type, bool addNameSpace = false, const QString &prePath = QString(), const QString &postPath = QString());
     QMap<QString, QList<GeneratorTypes::TypeStruct> > extractTypes(const QString &data, const QString &objectsPostPath = QString(), const QString &objectsPrePath = QString(), const QString &customHeader = QString());
     QMap<QString, QList<GeneratorTypes::FunctionStruct> > extractFunctions(const QString &data);

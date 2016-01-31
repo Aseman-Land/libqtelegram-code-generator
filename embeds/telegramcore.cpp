@@ -5,6 +5,8 @@
 #include "telegramcore.h"
 #include <QDebug>
 
+qint32 TelegramCore::mTimeOut = 30000;
+
 TelegramCore::TelegramCore(QObject *parent) :
     QObject(parent)
 {
@@ -38,6 +40,20 @@ qint64 TelegramCore::retry(qint64 mid)
         return result;
 /*! === retries === !*/
     return result;
+}
+
+void TelegramCore::timerEvent(QTimerEvent *e)
+{
+    const qint64 msgId = mTimer.key(e->timerId());
+    if(msgId)
+    {
+        mTimer.remove(msgId);
+        killTimer(e->timerId());
+        qDebug() << "Timed out. Retrying msgId=" << msgId;
+        retry(msgId);
+    }
+
+    QObject::timerEvent(e);
 }
 
 TelegramCore::~TelegramCore()

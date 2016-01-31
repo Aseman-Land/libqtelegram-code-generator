@@ -88,7 +88,7 @@ void TelegramCoreGenerator::writeHeader(const QMap<QString, QList<GeneratorTypes
             else
                 returnArg = QString("%1 result").arg(t.returnType.name);
 
-            methodsResult += QString("virtual qint64 %1(%2Callback<%3 > callBack = 0);").arg(functionName, arguments, t.returnType.name);
+            methodsResult += QString("virtual qint64 %1(%2Callback<%3 > callBack = 0, qint32 timeout = timeOut());").arg(functionName, arguments, t.returnType.name);
             signalsResult += QString("void %1Answer(qint64 msgId, %2);").arg(functionName, returnArg);
             errorsResult += QString("void %1Error(qint64 msgId, qint32 errorCode, const QString &errorText);").arg(functionName);
             answersEventsResult += QString("virtual void on%1Answer(qint64 msgId, %2, const QVariant &attachedData);").arg(classCaseType(functionName), returnArg);
@@ -222,12 +222,14 @@ void TelegramCoreGenerator::writeCpp(const QMap<QString, QList<GeneratorTypes::F
             QString methodInner = QString("if(!mApi) {\n%4    return 0;\n}\n"
                                           "qint64 msgId = mApi->%1(%2);\n"
                                           "if(msgId) {\n    callBackPush<%3 >(msgId, callBack);\n"
+                                          "    startTimeOut(msgId, timeout);\n"
                                           + shiftSpace(recallStore,1) +
                                           "} else {\n%4}\nreturn msgId;").arg(functionName, argumentNames, t.returnType.name, shiftSpace(callBackError,1));
 
             QString answersInnter = QString("Q_UNUSED(attachedData);\n"
                                             "mRecallArgs.remove(msgId);\n"
                                             "callBackCall<%1 >(msgId, result);\n"
+                                            "stopTimeOut(msgId);\n"
                                             "Q_EMIT %2Answer(msgId, result);")
                                   .arg(t.returnType.name, functionName);
 
@@ -236,13 +238,14 @@ void TelegramCoreGenerator::writeCpp(const QMap<QString, QList<GeneratorTypes::F
                                            "%1;\nCallbackError error;\nerror.errorCode = errorCode;\n"
                                            "error.errorText = errorText;\nerror.null = false;\n"
                                            "callBackCall<%2 >(msgId, result, error);\n"
+                                           "stopTimeOut(msgId);\n"
                                            "Q_EMIT %3Error(msgId, errorCode, errorText);")
                                   .arg(nullResult, t.returnType.name, functionName);
 
             connectsResult += QString("connect(api, &TelegramApi::%1Answer, this, &TelegramCore::on%2Answer);\n"
                                       "connect(api, &TelegramApi::%1Error, this, &TelegramCore::on%2Error);\n")
                                 .arg(functionName, classCase);
-            methodsResult += QString("qint64 TelegramCore::%1(%2Callback<%4 > callBack) {\n%3}\n\n").arg(functionName, arguments, shiftSpace(methodInner, 1), t.returnType.name)
+            methodsResult += QString("qint64 TelegramCore::%1(%2Callback<%4 > callBack, qint32 timeout) {\n%3}\n\n").arg(functionName, arguments, shiftSpace(methodInner, 1), t.returnType.name)
                            + QString("void TelegramCore::on%1Answer(qint64 msgId, %2, const QVariant &attachedData) {\n%3}\n\n").arg(classCase, returnArg, shiftSpace(answersInnter, 1))
                            + QString("void TelegramCore::on%1Error(qint64 msgId, qint32 errorCode, const QString &errorText, const QVariant &attachedData) {\n%2}\n").arg(classCase, shiftSpace(errorsInnter, 1));
 

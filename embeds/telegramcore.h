@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QPointer>
+#include <QTimerEvent>
 #include <functional>
 
 #include "telegramapi.h"
@@ -40,6 +41,9 @@ public:
         return error;
     }
 
+    static qint32 timeOut() { return mTimeOut; }
+    static void setTimeOut(const qint32 &timeOut) { mTimeOut = timeOut; }
+
 /*! === methods === !*/
 
 Q_SIGNALS:
@@ -52,9 +56,21 @@ protected Q_SLOTS:
 
 protected:
     qint64 retry(qint64 msgId);
+    void timerEvent(QTimerEvent *e);
 
     void setApi(TelegramApi *api);
     QPointer<TelegramApi> mApi;
+
+    void stopTimeOut(qint64 msgId) {
+        qint32 timer = mTimer.take(msgId);
+        if(timer) killTimer(timer);
+    }
+
+    void startTimeOut(qint64 msgId, int timeOut) {
+        stopTimeOut(msgId);
+        if(!timeOut) return;
+        mTimer[msgId] = startTimer(timeOut);
+    }
 
     template<typename T>
     void callBackPush(qint64 msgId, Callback<T> callback) {
@@ -83,6 +99,8 @@ protected:
 private:
     QHash<qint64, void*> mCallbacks;
     QHash<qint64, QVariantHash> mRecallArgs;
+    QHash<qint64, qint32> mTimer;
+    static qint32 mTimeOut;
 
     /*! === privates === !*/
 };

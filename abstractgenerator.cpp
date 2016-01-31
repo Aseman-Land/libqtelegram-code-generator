@@ -71,11 +71,41 @@ QString AbstractGenerator::usCaseType(const QString &str)
     return result;
 }
 
+QString AbstractGenerator::undoCase(const QString &str)
+{
+    QString result = classCaseType(str);
+    for(int i=0; i<result.length(); i++)
+    {
+        QChar ch = result[i];
+        if(ch.isUpper() && i!=0)
+        {
+            result.replace(i, 1, QString(" ") + ch);
+
+            while(i+1<result.length() && result[i+1].isUpper())
+            {
+                result[i+1] = result[i+1].toLower();
+                i++;
+            }
+        }
+    }
+
+    return result;
+}
+
 QString AbstractGenerator::classCaseType(const QString &str)
 {
     QString result = cammelCaseType(str);
     if(!result.isEmpty())
         result[0] = result[0].toUpper();
+
+    return result;
+}
+
+QString AbstractGenerator::unclassCaseType(const QString &str)
+{
+    QString result = cammelCaseType(str);
+    if(!result.isEmpty())
+        result[0] = result[0].toLower();
 
     return result;
 }
@@ -222,6 +252,7 @@ QMap<QString, QList<GeneratorTypes::TypeStruct> > AbstractGenerator::extractType
 
         type.typeName = "type" + classCaseType(name);
         type.typeCode = "0x" + code;
+        type.code = l;
 
         types[structName] << type;
     }
@@ -307,6 +338,7 @@ QMap<QString, QList<GeneratorTypes::FunctionStruct> > AbstractGenerator::extract
         fnc.className = className;
         fnc.functionName = functionName;
         fnc.returnType = translateType(returnType, false, "telegram/types/");
+        fnc.code = l;
 
         functions[className] << fnc;
     }
