@@ -171,6 +171,7 @@ GeneratorTypes::QtTypeStruct AbstractGenerator::translateType(const QString &typ
         result.name = QString("QList<%1>").arg(innerType.name);
         result.constRefrence = true;
         result.isList = true;
+        result.innerType = new GeneratorTypes::QtTypeStruct(innerType);
     }
     else
     {
@@ -180,6 +181,7 @@ GeneratorTypes::QtTypeStruct AbstractGenerator::translateType(const QString &typ
         result.qtgType = true;
     }
 
+    result.html = QString(result.name).replace("<", "&lt;").replace(">", "&gt;");
     return result;
 }
 

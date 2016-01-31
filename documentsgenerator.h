@@ -18,6 +18,8 @@ private:
     void writeType(const QString &name, const QList<GeneratorTypes::FunctionStruct> &types);
     void writeType(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
 
+    QString typeToHtml(const GeneratorTypes::QtTypeStruct &t, const QString &prePath = QString());
+
 private:
     QString m_dst;
 };

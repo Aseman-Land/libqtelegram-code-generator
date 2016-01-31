@@ -103,7 +103,7 @@ void DocumentsGenerator::writeType(const QString &name, const QList<GeneratorTyp
         const GeneratorTypes::TypeStruct &t = f.type;
 
         QString lqtgFunctionName = unclassCaseType(name) + classCaseType(f.functionName);
-        const QString inputType = f.returnType.constRefrence? "const " + f.returnType.name + " &" : f.returnType.name + " ";
+        const QString inputType = f.returnType.constRefrence? "const " + f.returnType.html + " &" : f.returnType.html + " ";
 
         result += QString("* **%1** - [TelegramCore::%3](methods/%2.md)\n\n")
                 .arg(undoCase(f.functionName))
@@ -114,7 +114,7 @@ void DocumentsGenerator::writeType(const QString &name, const QList<GeneratorTyp
 
         methodResult += "# " + name + "." + f.functionName + "\n\n";
         methodResult += QString("## Function:\n\nTelegramCore::%1\n\n").arg(lqtgFunctionName);
-        methodResult += QString("## Schema:\n\n`%1`\n").arg(f.code);
+        methodResult += QString("## Schema:\n\n```c++\n%1\n```\n").arg(f.code);
         methodResult += QString("## Parameters:\n\n");
         methodResult += "|Name|Type|Default|\n"
                         "|----|----|-------|\n";
@@ -128,39 +128,33 @@ void DocumentsGenerator::writeType(const QString &name, const QList<GeneratorTyp
             if(arg.isFlag)
                 continue;
 
-            if(arg.type.qtgType)
-                methodResult += QString("|%1|[%2](../../types/%3.md)||\n")
-                        .arg(cammelCaseType(arg.argName))
-                        .arg(arg.type.name).arg(arg.type.name.toLower());
-            else
-                methodResult += QString("|%1|%2||\n")
-                        .arg(cammelCaseType(arg.argName))
-                        .arg(arg.type.name);
+            methodResult += QString("|%1|%2||\n")
+                    .arg(cammelCaseType(arg.argName))
+                    .arg(typeToHtml(arg.type, "../../types/"));
 
             arguments += QString("%1").arg(arg.argName);
             arguments += ", ";
         }
 
-        methodResult += QString("|callBack|Callback<%1\\>|0|\n").arg(f.returnType.name);
+        methodResult += QString("|callBack|Callback&lt;%1&gt;|0|\n").arg(typeToHtml(f.returnType, "../../types/"));
         methodResult += "|timeout|qint32|TelegramCore::timeOut()|\n\n";
 
-        methodResult += "## Result:\n\n";
+        methodResult += "## Callback Result:\n\n";
         methodResult += "|Name|Type|\n"
                         "|----|----|\n"
-                        "|return|qint64|\n" +
-                        QString("|callBack|[%1](../../types/%2.md)|\n")
-                        .arg(f.returnType.name)
-                        .arg(f.returnType.name.toLower()) +
+                        "|msgId|qint64|\n" +
+                        QString("|result|%1|\n")
+                        .arg(typeToHtml(f.returnType, "../../types/")) +
                         "|error|TelegramCore::CallbackError|\n\n";
 
         methodResult += "## Signals:\n\n";
-        methodResult += QString("* `%1Answer(qint64 msgId, %2 result)`\n"
-                                "* `%1Error(qint64 msgId, qint32 errorCode, const QString &errorText)`\n\n")
+        methodResult += QString("```c++\n%1Answer(qint64 msgId, %2 result)\n```\n"
+                                "```c++\n%1Error(qint64 msgId, qint32 errorCode, const QString &errorText)\n```\n\n")
                         .arg(f.functionName,inputType);
 
         methodResult += "## Events:\n\n";
-        methodResult += QString("* `on%1Answer(qint64 msgId, %2 result)`\n"
-                                "* `on%1Error(qint64 msgId, qint32 errorCode, const QString &errorText)`\n\n")
+        methodResult += QString("```c++\non%1Answer(qint64 msgId, %2 result)\n```\n"
+                                "```c++\non%1Error(qint64 msgId, qint32 errorCode, const QString &errorText)\n```\n\n")
                         .arg(classCaseType(f.functionName),inputType);
 
         methodResult += "## Macros:\n\n" +
@@ -168,7 +162,7 @@ void DocumentsGenerator::writeType(const QString &name, const QList<GeneratorTyp
                         .arg(usCaseType(f.functionName).toUpper());
 
         methodResult += QString("## Examples:\n\n"
-                        "`tg->%1(%2[=](TG_%3_CALLBACK){\n    ...\n}, 30000);`\n")
+                        "```c++\ntg->%1(%2[=](TG_%3_CALLBACK){\n    ...\n}, 30000);\n```\n")
                         .arg(f.functionName).arg(arguments)
                         .arg(usCaseType(f.functionName).toUpper());
 
@@ -210,7 +204,7 @@ void DocumentsGenerator::writeType(const QString &name, const QList<GeneratorTyp
                   .arg(t.typeName.toLower());
 
         typesResult += QString("## %1::%2\n\n").arg(clssName).arg(t.typeName);
-        typesResult += QString("#### Schema:\n\n`%1`\n\n").arg(t.code);
+        typesResult += QString("#### Schema:\n\n```c++\n%1\n```\n\n").arg(t.code);
         typesResult += "#### Parameters:\n\n";
 
         if(!t.args.isEmpty())
@@ -223,15 +217,9 @@ void DocumentsGenerator::writeType(const QString &name, const QList<GeneratorTyp
             if(arg.isFlag)
                 continue;
 
-            if(arg.type.qtgType)
-                typesResult += QString("|%1|[%2](%3.md)|\n")
-                               .arg(cammelCaseType(arg.argName))
-                               .arg(arg.type.name)
-                               .arg(arg.type.name.toLower());
-            else
-                typesResult += QString("|%1|%2|\n")
-                               .arg(cammelCaseType(arg.argName))
-                               .arg(arg.type.name);
+            typesResult += QString("|%1|%2|\n")
+                           .arg(cammelCaseType(arg.argName))
+                           .arg(typeToHtml(arg.type));
         }
 
         typesResult += "\n";
@@ -245,6 +233,19 @@ void DocumentsGenerator::writeType(const QString &name, const QList<GeneratorTyp
 
     file.write(result.toUtf8());
     file.close();
+}
+
+QString DocumentsGenerator::typeToHtml(const GeneratorTypes::QtTypeStruct &t, const QString &prePath)
+{
+    GeneratorTypes::QtTypeStruct type = t.innerType? *(t.innerType) : t;
+    QString typeString;
+    if(type.qtgType)
+        typeString = QString("[%1](%2%3.md)").arg(type.html).arg(prePath).arg(type.html.toLower());
+    else
+        typeString = type.html;
+    if(t.innerType)
+        typeString = "QList&lt;" + typeString + "&gt;";
+    return typeString;
 }
 
 DocumentsGenerator::~DocumentsGenerator()

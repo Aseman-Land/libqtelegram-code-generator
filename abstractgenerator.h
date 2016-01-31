@@ -16,14 +16,17 @@ namespace GeneratorTypes
     class QtTypeStruct
     {
     public:
-        QtTypeStruct(): constRefrence(false), qtgType(false), isList(false){}
+        QtTypeStruct(): constRefrence(false), qtgType(false), isList(false), innerType(0){}
+//        virtual ~QtTypeStruct() { if(innerType) delete innerType; }
         QString name;
+        QString html;
         QStringList includes;
         bool constRefrence;
         bool qtgType;
         bool isList;
         QString defaultValue;
         QString originalType;
+        QtTypeStruct *innerType;
 
         bool operator ==(const QtTypeStruct &b) {
             return name == b.name &&
@@ -31,7 +34,8 @@ namespace GeneratorTypes
                    constRefrence == b.constRefrence &&
                    defaultValue == b.defaultValue &&
                    originalType == b.originalType &&
-                   isList == b.isList;
+                   isList == b.isList &&
+                   *innerType == *(b.innerType);
         }
     };
 
