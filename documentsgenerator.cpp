@@ -204,7 +204,11 @@ void DocumentsGenerator::writeType(const QString &name, const QList<GeneratorTyp
     {
         const GeneratorTypes::TypeStruct &t = types[i];
 
-        result += QString("* %1\n").arg(t.typeName);
+        result += QString("* [%1](#%2%3)\n")
+                  .arg(t.typeName)
+                  .arg(clssName.toLower())
+                  .arg(t.typeName.toLower());
+
         typesResult += QString("## %1::%2\n\n").arg(clssName).arg(t.typeName);
         typesResult += QString("#### Schema:\n\n`%1`\n\n").arg(t.code);
         typesResult += "#### Parameters:\n\n";
