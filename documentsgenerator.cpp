@@ -116,9 +116,8 @@ void DocumentsGenerator::writeType(const QString &name, const QList<GeneratorTyp
         methodResult += QString("## Function:\n\nTelegramCore::%1\n\n").arg(lqtgFunctionName);
         methodResult += QString("## Schema:\n\n`%1`\n").arg(f.code);
         methodResult += QString("## Parameters:\n\n");
-        if(!t.args.isEmpty())
-            methodResult += "|Name|Type|Default|\n"
-                            "|----|----|-------|\n";
+        methodResult += "|Name|Type|Default|\n"
+                        "|----|----|-------|\n";
 
         QString arguments;
         for(int j=0; j<t.args.length(); j++)
