@@ -256,10 +256,10 @@ void TypeObjectGenerator::writeTypeHeader(const QString &name, const QList<Gener
         }
     }
     propertiesResult += QString("    Q_PROPERTY(%1 core READ core WRITE setCore NOTIFY coreChanged)\n").arg(clssName)
-            + "    Q_PROPERTY(int classType READ classType WRITE setClassType NOTIFY classTypeChanged)\n";
+            + "    Q_PROPERTY(quint32 classType READ classType WRITE setClassType NOTIFY classTypeChanged)\n";
     privateResult += QString("    %1 m_core;\n").arg(clssName);
 
-    bodyResult += QString("    void setClassType(int classType);\n    int classType() const;\n\n");
+    bodyResult += QString("    void setClassType(quint32 classType);\n    quint32 classType() const;\n\n");
     bodyResult += QString("    void setCore(const %1 &core);\n    %1 core() const;\n\n").arg(clssName);
 
     bodyResult += QString("    %1Object &operator =(const %1 &b);\n").arg(clssName);
@@ -322,8 +322,8 @@ void TypeObjectGenerator::writeTypeClass(const QString &name, const QList<Genera
             properties[arg.argName][arg.type.name] = arg;
         }
     }
-    typeSwitch += "    }\n";
-    typeSwitchBack += "    }\n";
+    typeSwitch += QString("    default:\n        result = %2::%1;\n        break;\n    }\n").arg(defaultType, clssName);
+    typeSwitchBack += QString("    default:\n        result = %1;\n        break;\n    }\n").arg(classCaseType(defaultType));
 
     QList<GeneratorTypes::TypeStruct> modifiedTypes = types;
 
@@ -403,9 +403,9 @@ void TypeObjectGenerator::writeTypeClass(const QString &name, const QList<Genera
     result += QString("%1Object &%1Object::operator =(const %1 &b) {\n%2\n%3}\n\n").arg(clssName, resultEqualOperator, resultEqualOperatorEmits);
     result += QString("bool %1Object::operator ==(const %1 &b) const {\n%2}\n\n").arg(clssName, shiftSpace(resultEqualCheckOperator, 1));
 
-    result += QString("void %1Object::setClassType(int classType) {\n%2\n    if(m_core.classType() == result) return;\n"
+    result += QString("void %1Object::setClassType(quint32 classType) {\n%2\n    if(m_core.classType() == result) return;\n"
                       "    m_core.setClassType(result);\n    Q_EMIT classTypeChanged();\n    Q_EMIT coreChanged();\n}\n\n").arg(clssName, typeSwitch);
-    result += QString("int %1Object::classType() const {\n%2\n    return result;\n}\n\n").arg(clssName, typeSwitchBack);
+    result += QString("quint32 %1Object::classType() const {\n%2\n    return result;\n}\n\n").arg(clssName, typeSwitchBack);
 
     result += QString("void %1Object::setCore(const %1 &core) {\n    operator =(core);\n}\n\n").arg(clssName);
     result += QString("%1 %1Object::core() const {\n    return m_core;\n}\n\n").arg(clssName);
@@ -511,7 +511,7 @@ void TypeObjectGenerator::extract(const QString &data)
 {
     QDir().mkpath(m_dst);
 
-    QMap<QString, QList<GeneratorTypes::TypeStruct> > types = extractTypes(data, "object");
+    QMap<QString, QList<GeneratorTypes::TypeStruct> > types = extractTypes(data, "object", QString(), "types");
     QMapIterator<QString, QList<GeneratorTypes::TypeStruct> > i(types);
     while(i.hasNext())
     {

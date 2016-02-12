@@ -445,7 +445,7 @@ void TypeGenerator::extract(const QString &data)
 {
     QDir().mkpath(m_dst);
 
-    QMap<QString, QList<GeneratorTypes::TypeStruct> > types = extractTypes(data);
+    QMap<QString, QList<GeneratorTypes::TypeStruct> > types = extractTypes(data, QString(), QString(), "types");
     QMapIterator<QString, QList<GeneratorTypes::TypeStruct> > i(types);
     while(i.hasNext())
     {

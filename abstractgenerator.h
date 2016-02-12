@@ -34,8 +34,7 @@ namespace GeneratorTypes
                    constRefrence == b.constRefrence &&
                    defaultValue == b.defaultValue &&
                    originalType == b.originalType &&
-                   isList == b.isList &&
-                   *innerType == *(b.innerType);
+                   isList == b.isList;
         }
     };
 
