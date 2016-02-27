@@ -158,6 +158,60 @@ QString TypeGenerator::pushFunction(const QString &name, const QList<GeneratorTy
     return result;
 }
 
+QString TypeGenerator::streamReadFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
+{
+    QString result = QString("uint type = 0;\nstream >> type;\n"
+                             "item.setClassType(static_cast<%1::%1Type>(type));\n"
+                             "switch(type) {\n").arg(name);
+
+    foreach(const GeneratorTypes::TypeStruct &t, types)
+    {
+        result += QString("case %2::%1: {\n").arg(t.typeName, name);
+
+        QString fetchPart;
+        foreach(const GeneratorTypes::ArgStruct &arg, t.args)
+        {
+            if(arg.flagDedicated)
+                continue;
+
+            fetchPart += QString("%1 m_%2;\nstream >> m_%2;\n"
+                                 "item.set%3(m_%2);\n").arg(arg.type.name, arg.argName, classCaseType(arg.argName));
+        }
+
+        result += shiftSpace(fetchPart, 1);
+        result += "}\n    break;\n";
+    }
+
+    result += "}\nreturn stream;\n";
+    return result;
+}
+
+QString TypeGenerator::streamWriteFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
+{
+    Q_UNUSED(name)
+    QString result = "stream << static_cast<uint>(item.classType());\nswitch(item.classType()) {\n";
+
+    foreach(const GeneratorTypes::TypeStruct &t, types)
+    {
+        result += QString("case %1::%2:\n").arg(name, t.typeName);
+
+        QString fetchPart;
+        foreach(const GeneratorTypes::ArgStruct &arg, t.args)
+        {
+            if(arg.flagDedicated)
+                continue;
+
+            fetchPart += QString("stream << item.%1();\n").arg(cammelCaseType(arg.argName));
+        }
+
+        result += shiftSpace(fetchPart, 1);
+        result += "    break;\n";
+    }
+
+    result += "}\nreturn stream;\n";
+    return result;
+}
+
 void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
     const QString &clssName = classCaseType(name);
@@ -245,6 +299,8 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
     result += privateResult + QString("};\n\nQ_DECLARE_METATYPE(%1)\n\n").arg(clssName);
 
     result = includes + "\n" + result;
+    result += QString("QDataStream LIBQTELEGRAMSHARED_EXPORT &operator<<(QDataStream &stream, const %1 &item);\n"
+                      "QDataStream LIBQTELEGRAMSHARED_EXPORT &operator>>(QDataStream &stream, %1 &item);\n\n").arg(clssName);
     result = QString("#ifndef LQTG_TYPE_%1\n#define LQTG_TYPE_%1\n\n").arg(clssName.toUpper()) + result;
     result += QString("#endif // LQTG_TYPE_%1\n").arg(clssName.toUpper());
 
@@ -265,7 +321,8 @@ void TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTyp
     result += QString("#include \"%1.h\"\n").arg(clssName.toLower()) +
         "#include \"core/inboundpkt.h\"\n"
         "#include \"core/outboundpkt.h\"\n"
-        "#include \"../coretypes.h\"\n\n";
+        "#include \"../coretypes.h\"\n\n"
+        "#include <QDataStream>\n\n";
 
     QString resultTypes;
     QString resultEqualOperator = "return m_classType == b.m_classType";
@@ -365,6 +422,8 @@ void TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTyp
     result += QString("%1::%1Type %1::classType() const {\n    return m_classType;\n}\n\n").arg(clssName);
     result += QString("bool %1::fetch(InboundPkt *in) {\n%2}\n\n").arg(clssName, shiftSpace(fetchFunction(name, modifiedTypes), 1));
     result += QString("bool %1::push(OutboundPkt *out) const {\n%2}\n\n").arg(clssName, shiftSpace(pushFunction(name, modifiedTypes), 1));
+    result += QString("QDataStream &operator<<(QDataStream &stream, const %1 &item) {\n%2}\n\n").arg(clssName, shiftSpace(streamWriteFunction(clssName, modifiedTypes), 1));
+    result += QString("QDataStream &operator>>(QDataStream &stream, %1 &item) {\n%2}\n\n").arg(clssName, shiftSpace(streamReadFunction(clssName, modifiedTypes), 1));
 
     QFile file(m_dst + "/" + clssName.toLower() + ".cpp");
     if(!file.open(QFile::WriteOnly))

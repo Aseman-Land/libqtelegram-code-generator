@@ -21,6 +21,8 @@ protected:
     QString fetchFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     QString typeToPushFunction(const QString &arg, const QString &type, const GeneratorTypes::ArgStruct &argStruct);
     QString pushFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
+    QString streamReadFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
+    QString streamWriteFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     void writeTypeHeader(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     void writeTypeClass(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     void writeType(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
