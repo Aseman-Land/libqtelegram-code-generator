@@ -457,11 +457,12 @@ void TypeObjectGenerator::writePri(const QStringList &types)
 void TypeObjectGenerator::writeQmlRegister(const QStringList &types)
 {
     QString result = "\n#include \"typeobjects.h\"\n#include <qqml.h>\n\n";
-    result += "void qtelegramRegisterQmlTypes(const char *uri) {\n";
+    result += "void qtelegramRegisterQmlTypes(const char *uri, int major, int minor) {\n";
+    result += QString("    qmlRegisterType<TelegramTypeQObject>(uri, major, minor, \"TelegramTypeQObject\");\n");
     for(int i=0; i<types.count(); i++)
     {
         const QString &t = classCaseType(types[i]);
-        result += QString("    qmlRegisterType<%1Object>(uri, 1, 0, \"%1\");\n").arg(t);
+        result += QString("    qmlRegisterType<%1Object>(uri, major, minor, \"%1\");\n").arg(t);
     }
     result += "}\n\n";
 

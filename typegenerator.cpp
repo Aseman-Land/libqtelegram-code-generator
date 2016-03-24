@@ -296,6 +296,7 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
     result += QString("    bool operator ==(const %1 &b) const;\n\n").arg(clssName);
     result += "    bool operator==(bool stt) const { return isNull() != stt; }\n"
               "    bool operator!=(bool stt) const { return !operator ==(stt); }\n\n";
+    result += "    QByteArray getHash(QCryptographicHash::Algorithm alg = QCryptographicHash::Md5) const;\n\n";
     result += privateResult + QString("};\n\nQ_DECLARE_METATYPE(%1)\n\n").arg(clssName);
 
     result = includes + "\n" + result;
@@ -422,6 +423,9 @@ void TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTyp
     result += QString("%1::%1Type %1::classType() const {\n    return m_classType;\n}\n\n").arg(clssName);
     result += QString("bool %1::fetch(InboundPkt *in) {\n%2}\n\n").arg(clssName, shiftSpace(fetchFunction(name, modifiedTypes), 1));
     result += QString("bool %1::push(OutboundPkt *out) const {\n%2}\n\n").arg(clssName, shiftSpace(pushFunction(name, modifiedTypes), 1));
+    result += QString("QByteArray %1::getHash(QCryptographicHash::Algorithm alg) const {\n"
+                      "    QByteArray data;\n    QDataStream str(&data, QIODevice::WriteOnly);\n"
+                      "    str << *this;\n    return QCryptographicHash::hash(data, alg);\n}\n\n").arg(clssName);
     result += QString("QDataStream &operator<<(QDataStream &stream, const %1 &item) {\n%2}\n\n").arg(clssName, shiftSpace(streamWriteFunction(clssName, modifiedTypes), 1));
     result += QString("QDataStream &operator>>(QDataStream &stream, %1 &item) {\n%2}\n\n").arg(clssName, shiftSpace(streamReadFunction(clssName, modifiedTypes), 1));
 
