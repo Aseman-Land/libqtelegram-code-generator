@@ -86,7 +86,7 @@ QString TypeObjectGenerator::fetchFunction(const QString &name, const QList<Gene
             fetchPart += typeToFetchFunction("m_" + cammelCaseType(arg.argName), arg.type.name, arg) + "\n";
         }
 
-        fetchPart += QString("m_classType = static_cast<%1Type>(x);\nreturn true;\n").arg(classCaseType(name));
+        fetchPart += QString("m_classType = static_cast<%1ClassType>(x);\nreturn true;\n").arg(classCaseType(name));
         result += shiftSpace(fetchPart, 1);
         result += "}\n    break;\n\n";
     }
@@ -168,7 +168,7 @@ void TypeObjectGenerator::writeTypeHeader(const QString &name, const QList<Gener
     result += QString("class LIBQTELEGRAMSHARED_EXPORT %1Object : public TelegramTypeQObject\n{\n").arg(clssName);
 
     QString bodyResult;
-    bodyResult += QString("public:\n    enum %1Type {\n").arg(clssName);
+    bodyResult += QString("public:\n    enum %1ClassType {\n").arg(clssName);
 
     QString defaultType;
     QMap<QString, QMap<QString,GeneratorTypes::ArgStruct> > properties;
@@ -209,7 +209,7 @@ void TypeObjectGenerator::writeTypeHeader(const QString &name, const QList<Gener
     QSet<QString> addedIncludes;
 
     QString signalsResult = "    void coreChanged();\n    void classTypeChanged();\n";
-    QString propertiesResult = QString("    Q_OBJECT\n    Q_ENUMS(%1Type)\n").arg(clssName);
+    QString propertiesResult = QString("    Q_OBJECT\n    Q_ENUMS(%1ClassType)\n").arg(clssName);
 
     QMapIterator<QString, QMap<QString,GeneratorTypes::ArgStruct> > pi(properties);
     while(pi.hasNext())
@@ -296,7 +296,7 @@ void TypeObjectGenerator::writeTypeClass(const QString &name, const QList<Genera
     QString resultEqualOperatorEmits;
     QString resultPrivateSlots;
 
-    QString typeSwitch = QString("    %1::%1Type result;\n    switch(classType) {\n").arg(clssName);
+    QString typeSwitch = QString("    %1::%1ClassType result;\n    switch(classType) {\n").arg(clssName);
     QString typeSwitchBack = QString("    int result;\n    switch(static_cast<qint64>(m_core.classType())) {\n");
 
     QString defaultType;
@@ -343,15 +343,18 @@ void TypeObjectGenerator::writeTypeClass(const QString &name, const QList<Genera
             {
                 argName = arg.argName + "_" + QString(arg.type.originalType).remove(classCaseType(arg.argName));
 
-                GeneratorTypes::ArgStruct newArg = arg;
-                newArg.argName = argName;
-
                 for(int i=0; i<modifiedTypes.count(); i++)
                 {
                     GeneratorTypes::TypeStruct &ts = modifiedTypes[i];
-                    int idx = ts.args.indexOf(arg);
-                    if(idx != -1)
-                        ts.args[idx] = newArg;
+                    for(int i=0; i<ts.args.count(); i++)
+                    {
+                        GeneratorTypes::ArgStruct &secArg = ts.args[i];
+                        if(secArg.argName == arg.argName &&
+                           secArg.type.name == arg.type.name)
+                        {
+                            secArg.argName = argName;
+                        }
+                    }
                 }
             }
 

@@ -24,7 +24,7 @@ void LqtgTypeGenerator::writeTypeHeader(const QString &name, const QList<Generat
 
     QString result;
     result += QString("class LIBQTELEGRAMSHARED_EXPORT %1 : public TelegramCustomTypeObject\n{\npublic:\n"
-                      "    enum %1Type {\n").arg(clssName);
+                      "    enum %1ClassType {\n").arg(clssName);
 
     QString defaultType;
     QMap<QString, QMap<QString,GeneratorTypes::ArgStruct> > properties;
@@ -53,7 +53,7 @@ void LqtgTypeGenerator::writeTypeHeader(const QString &name, const QList<Generat
         }
     }
 
-    result += QString("    %1(%1Type classType = %2);\n").arg(clssName, defaultType);
+    result += QString("    %1(%1ClassType classType = %2);\n").arg(clssName, defaultType);
     result += QString("    %1(const Null&);\n    virtual ~%1();\n\n").arg(clssName);
 
     QString privateResult = "private:\n";
@@ -95,9 +95,9 @@ void LqtgTypeGenerator::writeTypeHeader(const QString &name, const QList<Generat
                 privateResult += QString("    %1 m_%2;\n").arg(type.name, cammelCase);
         }
     }
-    privateResult += QString("    %1Type m_classType;\n").arg(clssName);
+    privateResult += QString("    %1ClassType m_classType;\n").arg(clssName);
 
-    result += QString("    void setClassType(%1Type classType);\n    %1Type classType() const;\n\n").arg(clssName);
+    result += QString("    void setClassType(%1ClassType classType);\n    %1ClassType classType() const;\n\n").arg(clssName);
     result += QString("    bool operator ==(const %1 &b) const;\n\n").arg(clssName);
     result += "    bool operator==(bool stt) const { return isNull() != stt; }\n"
               "    bool operator!=(bool stt) const { return !operator ==(stt); }\n\n";
@@ -166,15 +166,18 @@ void LqtgTypeGenerator::writeTypeClass(const QString &name, const QList<Generato
             {
                 argName = arg.argName + "_" + QString(arg.type.originalType).remove(classCaseType(arg.argName));
 
-                GeneratorTypes::ArgStruct newArg = arg;
-                newArg.argName = argName;
-
                 for(int i=0; i<modifiedTypes.count(); i++)
                 {
                     GeneratorTypes::TypeStruct &ts = modifiedTypes[i];
-                    int idx = ts.args.indexOf(arg);
-                    if(idx != -1)
-                        ts.args[idx] = newArg;
+                    for(int i=0; i<ts.args.count(); i++)
+                    {
+                        GeneratorTypes::ArgStruct &secArg = ts.args[i];
+                        if(secArg.argName == arg.argName &&
+                           secArg.type.name == arg.type.name)
+                        {
+                            secArg.argName = argName;
+                        }
+                    }
                 }
             }
 
@@ -205,7 +208,7 @@ void LqtgTypeGenerator::writeTypeClass(const QString &name, const QList<Generato
     }
     resultEqualOperator += ";";
 
-    result += QString("%1::%1(%1Type classType) :\n").arg(clssName);
+    result += QString("%1::%1(%1ClassType classType) :\n").arg(clssName);
     result += resultTypes + QString("    m_classType(classType)\n");;
     result += "{\n}\n\n";
     result += QString("%1::%1(const Null &null) :\n    TelegramCustomTypeObject(null),\n").arg(clssName);
@@ -215,8 +218,8 @@ void LqtgTypeGenerator::writeTypeClass(const QString &name, const QList<Generato
     result += functions;
     result += QString("bool %1::operator ==(const %1 &b) const {\n%2}\n\n").arg(clssName, shiftSpace(resultEqualOperator, 1));
 
-    result += QString("void %1::setClassType(%1::%1Type classType) {\n    m_classType = classType;\n}\n\n").arg(clssName);
-    result += QString("%1::%1Type %1::classType() const {\n    return m_classType;\n}\n\n").arg(clssName);
+    result += QString("void %1::setClassType(%1::%1ClassType classType) {\n    m_classType = classType;\n}\n\n").arg(clssName);
+    result += QString("%1::%1ClassType %1::classType() const {\n    return m_classType;\n}\n\n").arg(clssName);
 
     QFile file(m_dst + "/" + clssName.toLower() + ".cpp");
     if(!file.open(QFile::WriteOnly))

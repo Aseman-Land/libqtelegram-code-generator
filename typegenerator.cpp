@@ -84,7 +84,7 @@ QString TypeGenerator::fetchFunction(const QString &name, const QList<GeneratorT
             fetchPart += typeToFetchFunction("m_" + cammelCaseType(arg.argName), arg.type.name, arg) + "\n";
         }
 
-        fetchPart += QString("m_classType = static_cast<%1Type>(x);\nreturn true;\n").arg(classCaseType(name));
+        fetchPart += QString("m_classType = static_cast<%1ClassType>(x);\nreturn true;\n").arg(classCaseType(name));
         result += shiftSpace(fetchPart, 1);
         result += "}\n    break;\n\n";
     }
@@ -161,7 +161,7 @@ QString TypeGenerator::pushFunction(const QString &name, const QList<GeneratorTy
 QString TypeGenerator::streamReadFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
     QString result = QString("uint type = 0;\nstream >> type;\n"
-                             "item.setClassType(static_cast<%1::%1Type>(type));\n"
+                             "item.setClassType(static_cast<%1::%1ClassType>(type));\n"
                              "switch(type) {\n").arg(name);
 
     foreach(const GeneratorTypes::TypeStruct &t, types)
@@ -218,7 +218,7 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
 
     QString result;
     result += QString("class LIBQTELEGRAMSHARED_EXPORT %1 : public TelegramTypeObject\n{\npublic:\n"
-                      "    enum %1Type {\n").arg(clssName);
+                      "    enum %1ClassType {\n").arg(clssName);
 
     QString defaultType;
     QMap<QString, QMap<QString,GeneratorTypes::ArgStruct> > properties;
@@ -247,7 +247,7 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
         }
     }
 
-    result += QString("    %1(%1Type classType = %2, InboundPkt *in = 0);\n").arg(clssName, defaultType);
+    result += QString("    %1(%1ClassType classType = %2, InboundPkt *in = 0);\n").arg(clssName, defaultType);
     result += QString("    %1(InboundPkt *in);\n    %1(const Null&);\n    virtual ~%1();\n\n").arg(clssName);
 
     QString privateResult = "private:\n";
@@ -289,9 +289,9 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
                 privateResult += QString("    %1 m_%2;\n").arg(type.name, cammelCase);
         }
     }
-    privateResult += QString("    %1Type m_classType;\n").arg(clssName);
+    privateResult += QString("    %1ClassType m_classType;\n").arg(clssName);
 
-    result += QString("    void setClassType(%1Type classType);\n    %1Type classType() const;\n\n").arg(clssName);
+    result += QString("    void setClassType(%1ClassType classType);\n    %1ClassType classType() const;\n\n").arg(clssName);
     result += "    bool fetch(InboundPkt *in);\n    bool push(OutboundPkt *out) const;\n\n";
     result += QString("    bool operator ==(const %1 &b) const;\n\n").arg(clssName);
     result += "    bool operator==(bool stt) const { return isNull() != stt; }\n"
@@ -367,15 +367,18 @@ void TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTyp
             {
                 argName = arg.argName + "_" + QString(arg.type.originalType).remove(classCaseType(arg.argName));
 
-                GeneratorTypes::ArgStruct newArg = arg;
-                newArg.argName = argName;
-
                 for(int i=0; i<modifiedTypes.count(); i++)
                 {
                     GeneratorTypes::TypeStruct &ts = modifiedTypes[i];
-                    int idx = ts.args.indexOf(arg);
-                    if(idx != -1)
-                        ts.args[idx] = newArg;
+                    for(int i=0; i<ts.args.count(); i++)
+                    {
+                        GeneratorTypes::ArgStruct &secArg = ts.args[i];
+                        if(secArg.argName == arg.argName &&
+                           secArg.type.name == arg.type.name)
+                        {
+                            secArg.argName = argName;
+                        }
+                    }
                 }
             }
 
@@ -406,7 +409,7 @@ void TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTyp
     }
     resultEqualOperator += ";";
 
-    result += QString("%1::%1(%1Type classType, InboundPkt *in) :\n").arg(clssName);
+    result += QString("%1::%1(%1ClassType classType, InboundPkt *in) :\n").arg(clssName);
     result += resultTypes + QString("    m_classType(classType)\n");;
     result += "{\n    if(in) fetch(in);\n}\n\n";
     result += QString("%1::%1(InboundPkt *in) :\n").arg(clssName);
@@ -419,8 +422,8 @@ void TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTyp
     result += functions;
     result += QString("bool %1::operator ==(const %1 &b) const {\n%2}\n\n").arg(clssName, shiftSpace(resultEqualOperator, 1));
 
-    result += QString("void %1::setClassType(%1::%1Type classType) {\n    m_classType = classType;\n}\n\n").arg(clssName);
-    result += QString("%1::%1Type %1::classType() const {\n    return m_classType;\n}\n\n").arg(clssName);
+    result += QString("void %1::setClassType(%1::%1ClassType classType) {\n    m_classType = classType;\n}\n\n").arg(clssName);
+    result += QString("%1::%1ClassType %1::classType() const {\n    return m_classType;\n}\n\n").arg(clssName);
     result += QString("bool %1::fetch(InboundPkt *in) {\n%2}\n\n").arg(clssName, shiftSpace(fetchFunction(name, modifiedTypes), 1));
     result += QString("bool %1::push(OutboundPkt *out) const {\n%2}\n\n").arg(clssName, shiftSpace(pushFunction(name, modifiedTypes), 1));
     result += QString("QByteArray %1::getHash(QCryptographicHash::Algorithm alg) const {\n"
