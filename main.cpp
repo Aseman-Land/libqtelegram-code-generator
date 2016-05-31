@@ -6,6 +6,7 @@
 #include "apigenerator.h"
 #include "telegramcoregenerator.h"
 #include "documentsgenerator.h"
+#include "databasegenerator.h"
 
 #include <QFile>
 #include <QDir>
@@ -43,6 +44,7 @@ int main(int argc, char *argv[])
     ApiGenerator(destPath + "/telegram/").extract(data);
     TelegramCoreGenerator(destPath + "/telegram/").extract(data);
     DocumentsGenerator(destPath + "/telegram/documents/").extract(data);
+//    DatabaseGenerator(destPath + "/telegram/").extract(data);
 
     return 0;
 }
