@@ -7,8 +7,9 @@
 #include <QDir>
 #include <QDebug>
 
-TypeGenerator::TypeGenerator(const QString &dest) :
-    m_dst(dest)
+TypeGenerator::TypeGenerator(const QString &dest, bool inlineMode) :
+    m_dst(dest),
+    m_inlineMode(inlineMode)
 {
 
 }
@@ -390,6 +391,12 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
 
     QString privateResult = "private:\n";
     QString includes = "#include \"telegramtypeobject.h\"\n\n#include <QMetaType>\n#include <QVariant>\n";
+    includes +=
+            "#include \"core/inboundpkt.h\"\n"
+            "#include \"core/outboundpkt.h\"\n"
+            "#include \"../coretypes.h\"\n\n"
+            "#include <QDataStream>\n\n";
+
     QSet<QString> addedIncludes;
 
     QMapIterator<QString, QMap<QString,GeneratorTypes::ArgStruct> > pi(properties);
@@ -436,11 +443,15 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
     result += "    bool operator==(bool stt) const { return isNull() != stt; }\n"
               "    bool operator!=(bool stt) const { return !operator ==(stt); }\n\n";
     result += "    QByteArray getHash(QCryptographicHash::Algorithm alg = QCryptographicHash::Md5) const;\n\n";
+
     result += privateResult + QString("};\n\nQ_DECLARE_METATYPE(%1)\n\n").arg(clssName);
 
     result = includes + "\n" + result;
     result += QString("QDataStream LIBQTELEGRAMSHARED_EXPORT &operator<<(QDataStream &stream, const %1 &item);\n"
                       "QDataStream LIBQTELEGRAMSHARED_EXPORT &operator>>(QDataStream &stream, %1 &item);\n\n").arg(clssName);
+
+    result += writeTypeClass(name, types) + "\n";
+
     result = QString("#ifndef LQTG_TYPE_%1\n#define LQTG_TYPE_%1\n\n").arg(clssName.toUpper()) + result;
     result += QString("#endif // LQTG_TYPE_%1\n").arg(clssName.toUpper());
 
@@ -453,12 +464,19 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
     file.close();
 }
 
-void TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
+QString TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
     const QString &clssName = classCaseType(name);
 
+    QString preFnc;
+    if(m_inlineMode)
+        preFnc = "inline ";
+
     QString result;
-    result += QString("#include \"%1.h\"\n").arg(clssName.toLower()) +
+    QString classResult;
+
+    QString headers;
+    headers += QString("#include \"%1.h\"\n").arg(clssName.toLower()) +
         "#include \"core/inboundpkt.h\"\n"
         "#include \"core/outboundpkt.h\"\n"
         "#include \"../coretypes.h\"\n\n"
@@ -535,57 +553,70 @@ void TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTyp
 
             if(arg.flagDedicated)
             {
-                functions += QString("void %1::set%2(%3%4) {\n    if(%4) m_%5 = (m_%5 | (1<<%6));\n"
+                functions += preFnc + QString("void %1::set%2(%3%4) {\n    if(%4) m_%5 = (m_%5 | (1<<%6));\n"
                                      "    else m_%5 = (m_%5 & ~(1<<%6));\n}\n\n").arg(clssName, classCase, inputType, cammelCase, arg.flagName).arg(arg.flagValue);
-                functions += QString("%3 %1::%2() const {\n    return (m_%4 & 1<<%5);\n}\n\n").arg(clssName, cammelCase, type.name, arg.flagName).arg(arg.flagValue);
+                functions += preFnc + QString("%3 %1::%2() const {\n    return (m_%4 & 1<<%5);\n}\n\n").arg(clssName, cammelCase, type.name, arg.flagName).arg(arg.flagValue);
             }
             else
             {
-                functions += QString("void %1::set%2(%3%4) {\n    m_%4 = %4;\n}\n\n").arg(clssName, classCase, inputType, cammelCase);
-                functions += QString("%3 %1::%2() const {\n    return m_%2;\n}\n\n").arg(clssName, cammelCase, type.name);
+                functions += preFnc + QString("void %1::set%2(%3%4) {\n    m_%4 = %4;\n}\n\n").arg(clssName, classCase, inputType, cammelCase);
+                functions += preFnc + QString("%3 %1::%2() const {\n    return m_%2;\n}\n\n").arg(clssName, cammelCase, type.name);
             }
         }
     }
     resultEqualOperator += ";";
 
-    result += QString("%1::%1(%1ClassType classType, InboundPkt *in) :\n").arg(clssName);
-    result += resultTypes + QString("    m_classType(classType)\n");;
-    result += "{\n    if(in) fetch(in);\n}\n\n";
-    result += QString("%1::%1(InboundPkt *in) :\n").arg(clssName);
-    result += resultTypes + QString("    m_classType(%1)\n").arg(defaultType);
-    result += "{\n    fetch(in);\n}\n\n";
-    result += QString("%1::%1(const Null &null) :\n    TelegramTypeObject(null),\n").arg(clssName);
-    result += resultTypes + QString("    m_classType(%1)\n").arg(defaultType);
-    result += "{\n}\n\n";
-    result += QString("%1::~%1() {\n}\n\n").arg(clssName);
-    result += functions;
-    result += QString("bool %1::operator ==(const %1 &b) const {\n%2}\n\n").arg(clssName, shiftSpace(resultEqualOperator, 1));
+    classResult += preFnc + QString("%1::%1(%1ClassType classType, InboundPkt *in) :\n").arg(clssName);
+    classResult += resultTypes + QString("    m_classType(classType)\n");;
+    classResult += "{\n    if(in) fetch(in);\n}\n\n";
+    classResult += preFnc + QString("%1::%1(InboundPkt *in) :\n").arg(clssName);
+    classResult += resultTypes + QString("    m_classType(%1)\n").arg(defaultType);
+    classResult += "{\n    fetch(in);\n}\n\n";
+    classResult += preFnc + QString("%1::%1(const Null &null) :\n    TelegramTypeObject(null),\n").arg(clssName);
+    classResult += resultTypes + QString("    m_classType(%1)\n").arg(defaultType);
+    classResult += "{\n}\n\n";
+    classResult += preFnc + QString("%1::~%1() {\n}\n\n").arg(clssName);
+    classResult += functions;
+    classResult += preFnc + QString("bool %1::operator ==(const %1 &b) const {\n%2}\n\n").arg(clssName, shiftSpace(resultEqualOperator, 1));
 
-    result += QString("void %1::setClassType(%1::%1ClassType classType) {\n    m_classType = classType;\n}\n\n").arg(clssName);
-    result += QString("%1::%1ClassType %1::classType() const {\n    return m_classType;\n}\n\n").arg(clssName);
-    result += QString("bool %1::fetch(InboundPkt *in) {\n%2}\n\n").arg(clssName, shiftSpace(fetchFunction(name, modifiedTypes), 1));
-    result += QString("bool %1::push(OutboundPkt *out) const {\n%2}\n\n").arg(clssName, shiftSpace(pushFunction(name, modifiedTypes), 1));
-    result += QString("QMap<QString, QVariant> %1::toMap() const {\n%2}\n\n").arg(clssName, shiftSpace(mapWriteFunction(name, modifiedTypes), 1));
-    result += QString("%1 %1::fromMap(const QMap<QString, QVariant> &map) {\n%2}\n\n").arg(clssName, shiftSpace(mapReadFunction(name, modifiedTypes), 1));
-    result += QString("QByteArray %1::getHash(QCryptographicHash::Algorithm alg) const {\n"
-                      "    QByteArray data;\n    QDataStream str(&data, QIODevice::WriteOnly);\n"
-                      "    str << *this;\n    return QCryptographicHash::hash(data, alg);\n}\n\n").arg(clssName);
-    result += QString("QDataStream &operator<<(QDataStream &stream, const %1 &item) {\n%2}\n\n").arg(clssName, shiftSpace(streamWriteFunction(clssName, modifiedTypes), 1));
-    result += QString("QDataStream &operator>>(QDataStream &stream, %1 &item) {\n%2}\n\n").arg(clssName, shiftSpace(streamReadFunction(clssName, modifiedTypes), 1));
+    classResult += preFnc + QString("void %1::setClassType(%1::%1ClassType classType) {\n    m_classType = classType;\n}\n\n").arg(clssName);
+    classResult += preFnc + QString("%1::%1ClassType %1::classType() const {\n    return m_classType;\n}\n\n").arg(clssName);
+    classResult += preFnc + QString("bool %1::fetch(InboundPkt *in) {\n%2}\n\n").arg(clssName, shiftSpace(fetchFunction(name, modifiedTypes), 1));
+    classResult += preFnc + QString("bool %1::push(OutboundPkt *out) const {\n%2}\n\n").arg(clssName, shiftSpace(pushFunction(name, modifiedTypes), 1));
+    classResult += preFnc + QString("QMap<QString, QVariant> %1::toMap() const {\n%2}\n\n").arg(clssName, shiftSpace(mapWriteFunction(name, modifiedTypes), 1));
+    classResult += preFnc + QString("%1 %1::fromMap(const QMap<QString, QVariant> &map) {\n%2}\n\n").arg(clssName, shiftSpace(mapReadFunction(name, modifiedTypes), 1));
+    classResult +=preFnc +  QString("QByteArray %1::getHash(QCryptographicHash::Algorithm alg) const {\n"
+                                    "    QByteArray data;\n    QDataStream str(&data, QIODevice::WriteOnly);\n"
+                                    "    str << *this;\n    return QCryptographicHash::hash(data, alg);\n}\n\n").arg(clssName);
+    if(!m_inlineMode)
+    {
+        result += headers;
+    }
+    result += classResult;
+    result += preFnc + QString("QDataStream &operator<<(QDataStream &stream, const %1 &item) {\n%2}\n\n").arg(clssName, shiftSpace(streamWriteFunction(clssName, modifiedTypes), 1));
+    result += preFnc + QString("QDataStream &operator>>(QDataStream &stream, %1 &item) {\n%2}\n\n").arg(clssName, shiftSpace(streamReadFunction(clssName, modifiedTypes), 1));
 
-    QFile file(m_dst + "/" + clssName.toLower() + ".cpp");
-    if(!file.open(QFile::WriteOnly))
-        return;
+    if(m_inlineMode)
+        QFile::remove(m_dst + "/" + clssName.toLower() + ".cpp");
+    else
+    {
+        QFile file(m_dst + "/" + clssName.toLower() + ".cpp");
+        if(file.open(QFile::WriteOnly))
+        {
+            file.write(GENERATOR_SIGNATURE("//"));
+            file.write(result.toUtf8());
+            file.close();
+        }
+    }
 
-    file.write(GENERATOR_SIGNATURE("//"));
-    file.write(result.toUtf8());
-    file.close();
+    return result;
 }
 
 void TypeGenerator::writeType(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
     writeTypeHeader(name, types);
-    writeTypeClass(name, types);
+    if(!m_inlineMode)
+        writeTypeClass(name, types);
 }
 
 void TypeGenerator::writePri(const QStringList &types)
@@ -599,7 +630,8 @@ void TypeGenerator::writePri(const QStringList &types)
         const bool last = (i == types.count()-1);
 
         headers += QString(last? "    $$PWD/%1.h\n" : "    $$PWD/%1.h \\\n").arg(t.toLower());
-        sources += QString(last? "    $$PWD/%1.cpp\n" : "    $$PWD/%1.cpp \\\n").arg(t.toLower());
+        if(!m_inlineMode)
+            sources += QString(last? "    $$PWD/%1.cpp\n" : "    $$PWD/%1.cpp \\\n").arg(t.toLower());
     }
 
     result += headers + "\n";

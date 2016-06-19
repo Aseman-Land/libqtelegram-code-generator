@@ -4,8 +4,9 @@
 #include <QFile>
 #include <QDir>
 
-FunctionGenerator::FunctionGenerator(const QString &dest) :
-    m_dst(dest)
+FunctionGenerator::FunctionGenerator(const QString &dest, bool inlineMode) :
+    m_dst(dest),
+    m_inlineMode(inlineMode)
 {
 }
 
@@ -195,6 +196,12 @@ void FunctionGenerator::writeTypeHeader(const QString &name, const QList<Generat
                       "    enum %1Function {\n").arg(clssName);
 
     QString includes = "#include \"telegramfunctionobject.h\"\n";
+    if(m_inlineMode)
+    {
+        includes += "#include \"core/inboundpkt.h\"\n"
+                    "#include \"core/outboundpkt.h\"\n"
+                    "#include \"../coretypes.h\"\n\n";
+    }
     QString resultFnc;
 
     QSet<QString> addedIncludes;
@@ -247,7 +254,8 @@ void FunctionGenerator::writeTypeHeader(const QString &name, const QList<Generat
     result += resultFnc;
 
     result += "};\n\n";
-    result += "}\n}\n\n";
+    result += "}\n" + writeTypeClass(name, functions) +
+              "\n}\n\n";
 
     result = includes + "\n" + result;
     result = QString("#ifndef LQTG_FNC_%1\n#define LQTG_FNC_%1\n\n").arg(clssName.toUpper()) + result;
@@ -262,19 +270,27 @@ void FunctionGenerator::writeTypeHeader(const QString &name, const QList<Generat
     file.close();
 }
 
-void FunctionGenerator::writeTypeClass(const QString &name, const QList<GeneratorTypes::FunctionStruct> &functions)
+QString FunctionGenerator::writeTypeClass(const QString &name, const QList<GeneratorTypes::FunctionStruct> &functions)
 {
     const QString &clssName = classCaseType(name);
 
-    QString result;
-    result += QString("#include \"%1.h\"\n").arg(clssName.toLower()) +
-            "#include \"core/inboundpkt.h\"\n"
-            "#include \"core/outboundpkt.h\"\n"
-            "#include \"../coretypes.h\"\n\n";
+    QString preFnc;
+    if(m_inlineMode)
+        preFnc = "inline ";
 
-    result += "using namespace Tg;\n\n";
-    result += QString("Functions::%1::%1() {\n}\n\n").arg(clssName);
-    result += QString("Functions::%1::~%1() {\n}\n\n").arg(clssName);
+    QString result;
+    if(!m_inlineMode)
+    {
+        result += QString("#include \"%1.h\"\n").arg(clssName.toLower()) +
+                "#include \"core/inboundpkt.h\"\n"
+                "#include \"core/outboundpkt.h\"\n"
+                "#include \"../coretypes.h\"\n\n";
+
+        result += "using namespace Tg;\n\n";
+    }
+
+    result += preFnc + QString("Functions::%1::%1() {\n}\n\n").arg(clssName);
+    result += preFnc + QString("Functions::%1::~%1() {\n}\n\n").arg(clssName);
 
     QString resultFnc;
 
@@ -305,25 +321,33 @@ void FunctionGenerator::writeTypeClass(const QString &name, const QList<Generato
             fncArgs += QString(", %1%2").arg(inputType, cammelCaseType(arg.argName));
         }
 
-        resultFnc += QString("bool Functions::%3::%1(OutboundPkt *out%2) {\n%4}\n\n").arg(f.functionName, fncArgs,clssName,pushResult);
-        resultFnc += QString("%2 Functions::%3::%1Result(InboundPkt *in) {\n%4}\n\n").arg(f.functionName,f.returnType.name,clssName,fetchResult);
+        resultFnc += preFnc + QString("bool Functions::%3::%1(OutboundPkt *out%2) {\n%4}\n\n").arg(f.functionName, fncArgs,clssName,pushResult);
+        resultFnc += preFnc + QString("%2 Functions::%3::%1Result(InboundPkt *in) {\n%4}\n\n").arg(f.functionName,f.returnType.name,clssName,fetchResult);
     }
 
     result += resultFnc;
 
-    QFile file(m_dst + "/" + clssName.toLower() + ".cpp");
-    if(!file.open(QFile::WriteOnly))
-        return;
+    if(m_inlineMode)
+        QFile::remove(m_dst + "/" + clssName.toLower() + ".cpp");
+    else
+    {
+        QFile file(m_dst + "/" + clssName.toLower() + ".cpp");
+        if(!file.open(QFile::WriteOnly))
+        {
+            file.write(GENERATOR_SIGNATURE("//"));
+            file.write(result.toUtf8());
+            file.close();
+        }
+    }
 
-    file.write(GENERATOR_SIGNATURE("//"));
-    file.write(result.toUtf8());
-    file.close();
+    return result;
 }
 
 void FunctionGenerator::writeType(const QString &name, const QList<GeneratorTypes::FunctionStruct> &types)
 {
     writeTypeHeader(name, types);
-    writeTypeClass(name, types);
+    if(m_inlineMode)
+        writeTypeClass(name, types);
 }
 
 void FunctionGenerator::writePri(const QStringList &types)
@@ -337,7 +361,8 @@ void FunctionGenerator::writePri(const QStringList &types)
         const bool last = (i == types.count()-1);
 
         headers += QString(last? "    $$PWD/%1.h\n" : "    $$PWD/%1.h \\\n").arg(t.toLower());
-        sources += QString(last? "    $$PWD/%1.cpp\n" : "    $$PWD/%1.cpp \\\n").arg(t.toLower());
+        if(!m_inlineMode)
+            sources += QString(last? "    $$PWD/%1.cpp\n" : "    $$PWD/%1.cpp \\\n").arg(t.toLower());
     }
 
     result += headers + "\n";

@@ -7,8 +7,9 @@
 #include <QDir>
 #include <QDebug>
 
-LqtgTypeGenerator::LqtgTypeGenerator(const QString &dest) :
-    m_dst(dest)
+LqtgTypeGenerator::LqtgTypeGenerator(const QString &dest, bool inlineMode) :
+    m_dst(dest),
+    m_inlineMode(inlineMode)
 {
 
 }

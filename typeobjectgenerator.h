@@ -11,7 +11,7 @@
 class TypeObjectGenerator : public AbstractGenerator
 {
 public:
-    TypeObjectGenerator(const QString &dest);
+    TypeObjectGenerator(const QString &dest, bool inlineMode = false);
     ~TypeObjectGenerator();
 
     void extract(const QString &data);
@@ -22,7 +22,7 @@ protected:
     QString typeToPushFunction(const QString &arg, const QString &type, const GeneratorTypes::ArgStruct &argStruct);
     QString pushFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     void writeTypeHeader(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
-    void writeTypeClass(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
+    QString writeTypeClass(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     void writeType(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     void writePri(const QStringList &types);
     void writeQmlRegister(const QStringList &types);
@@ -31,6 +31,7 @@ protected:
 
 private:
     QString m_dst;
+    bool m_inlineMode;
 };
 
 #endif // TYPEOBJECTGENERATOR_H

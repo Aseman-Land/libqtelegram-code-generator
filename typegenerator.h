@@ -11,7 +11,7 @@
 class TypeGenerator : public AbstractGenerator
 {
 public:
-    TypeGenerator(const QString &dest);
+    TypeGenerator(const QString &dest, bool inlineMode = false);
     ~TypeGenerator();
 
     void extract(const QString &data);
@@ -28,7 +28,7 @@ protected:
     QString typeMapWriteFunction(const QString &arg, const QString &type, const QString &prepend, const GeneratorTypes::ArgStruct &argStruct);
     QString mapWriteFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     void writeTypeHeader(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
-    void writeTypeClass(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
+    QString writeTypeClass(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     void writeType(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     void writePri(const QStringList &types);
     void writeMainHeader(const QStringList &types);
@@ -36,6 +36,7 @@ protected:
 
 private:
     QString m_dst;
+    bool m_inlineMode;
 };
 
 #endif // TYPEGENERATOR_H

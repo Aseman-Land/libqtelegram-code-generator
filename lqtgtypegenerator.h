@@ -11,7 +11,7 @@
 class LqtgTypeGenerator : public AbstractGenerator
 {
 public:
-    LqtgTypeGenerator(const QString &dest);
+    LqtgTypeGenerator(const QString &dest, bool inlineMode = false);
     ~LqtgTypeGenerator();
 
     void extract(const QString &data);
@@ -26,6 +26,7 @@ protected:
 
 private:
     QString m_dst;
+    bool m_inlineMode;
 };
 
 #endif // LQTGTYPEGENERATOR_H

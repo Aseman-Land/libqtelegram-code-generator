@@ -7,8 +7,9 @@
 #include <QDir>
 #include <QDebug>
 
-TypeObjectGenerator::TypeObjectGenerator(const QString &dest) :
-    m_dst(dest)
+TypeObjectGenerator::TypeObjectGenerator(const QString &dest, bool inlineMode) :
+    m_dst(dest),
+    m_inlineMode(inlineMode)
 {
 
 }
@@ -271,6 +272,7 @@ void TypeObjectGenerator::writeTypeHeader(const QString &name, const QList<Gener
     result = QString("#ifndef LQTG_TYPE_%1_OBJECT\n#define LQTG_TYPE_%1_OBJECT\n\n").arg(clssName.toUpper()) + result;
     result += propertiesResult + "\n";
     result += bodyResult;
+    result += writeTypeClass(name, types);
     result += QString("#endif // LQTG_TYPE_%1_OBJECT\n").arg(clssName.toUpper());
 
     QFile file(m_dst + "/" + clssName.toLower() + "object.h");
@@ -282,11 +284,17 @@ void TypeObjectGenerator::writeTypeHeader(const QString &name, const QList<Gener
     file.close();
 }
 
-void TypeObjectGenerator::writeTypeClass(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
+QString TypeObjectGenerator::writeTypeClass(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
     const QString &clssName = classCaseType(name);
 
+    QString preFnc;
+    if(m_inlineMode)
+        preFnc = "inline ";
+
     QString result;
+    QString baseResult;
+
     result += QString("#include \"%1object.h\"\n\n").arg(clssName.toLower());
 
     QString resultTypes;
@@ -371,23 +379,23 @@ void TypeObjectGenerator::writeTypeClass(const QString &name, const QList<Genera
                 resultConstructorTypes += QString("    m_%1 = new %3Object(m_core.%1(), this);\n"
                                                   "    connect(m_%1.data(), &%3Object::coreChanged, this, &%4Object::core%2Changed);\n").arg(cammelCase, classCase, type.name, clssName);
 
-                functions += QString("void %1Object::set%2(%3 %4) {\n    if(m_%4 == %4) return;\n"
-                                     "    if(m_%4) delete m_%4;\n    m_%4 = %4;\n"
-                                     "    if(m_%4) {\n        m_%4->setParent(this);\n        m_core.set%2(m_%4->core());\n"
-                                     "        connect(m_%4.data(), &%5Object::coreChanged, this, &%1Object::core%2Changed);\n    }\n"
-                                     "    Q_EMIT %4Changed();\n    Q_EMIT coreChanged();\n}\n\n").arg(clssName, classCase, objectType, cammelCase, type.name);
-                functions += QString("%3 %1Object::%2() const {\n    return m_%2;\n}\n\n").arg(clssName, cammelCase, objectInputType);
+                functions += preFnc + QString("void %1Object::set%2(%3 %4) {\n    if(m_%4 == %4) return;\n"
+                                              "    if(m_%4) delete m_%4;\n    m_%4 = %4;\n"
+                                              "    if(m_%4) {\n        m_%4->setParent(this);\n        m_core.set%2(m_%4->core());\n"
+                                              "        connect(m_%4.data(), &%5Object::coreChanged, this, &%1Object::core%2Changed);\n    }\n"
+                                              "    Q_EMIT %4Changed();\n    Q_EMIT coreChanged();\n}\n\n").arg(clssName, classCase, objectType, cammelCase, type.name);
+                functions += preFnc + QString("%3 %1Object::%2() const {\n    return m_%2;\n}\n\n").arg(clssName, cammelCase, objectInputType);
 
                 resultEqualOperator += QString("    m_%1->setCore(b.%1());\n").arg(cammelCase);
 
-                resultPrivateSlots += QString("void %1Object::core%2Changed() {\n    if(m_core.%3() == m_%3->core()) return;\n"
+                resultPrivateSlots += preFnc + QString("void %1Object::core%2Changed() {\n    if(m_core.%3() == m_%3->core()) return;\n"
                         "    m_core.set%2(m_%3->core());\n    Q_EMIT %3Changed();\n    Q_EMIT coreChanged();\n}\n\n").arg(clssName, classCase, cammelCase);
             }
             else
             {
-                functions += QString("void %1Object::set%2(%3%4) {\n    if(m_core.%4() == %4) return;\n"
+                functions += preFnc + QString("void %1Object::set%2(%3%4) {\n    if(m_core.%4() == %4) return;\n"
                                      "    m_core.set%2(%4);\n    Q_EMIT %4Changed();\n    Q_EMIT coreChanged();\n}\n\n").arg(clssName, classCase, inputType, cammelCase);
-                functions += QString("%3 %1Object::%2() const {\n    return m_core.%2();\n}\n\n").arg(clssName, cammelCase, type.name);
+                functions += preFnc + QString("%3 %1Object::%2() const {\n    return m_core.%2();\n}\n\n").arg(clssName, cammelCase, type.name);
             }
 
             resultEqualOperatorEmits += QString("    Q_EMIT %1Changed();\n").arg(cammelCase);
@@ -395,39 +403,45 @@ void TypeObjectGenerator::writeTypeClass(const QString &name, const QList<Genera
     }
     resultEqualOperatorEmits += "    Q_EMIT coreChanged();\n    return *this;\n";
 
-    result += QString("%1Object::%1Object(const %1 &core, QObject *parent) :\n").arg(clssName);
-    result += QString("    TelegramTypeQObject(parent),\n") + resultTypes + QString("    m_core(core)\n");
-    result += "{\n" + resultConstructorTypes + "}\n\n";
-    result += QString("%1Object::%1Object(QObject *parent) :\n").arg(clssName);
-    result += QString("    TelegramTypeQObject(parent),\n") + resultTypes + QString("    m_core()\n");
-    result += "{\n" + resultConstructorTypes + "}\n\n";
-    result += QString("%1Object::~%1Object() {\n}\n\n").arg(clssName);
-    result += functions;
-    result += QString("%1Object &%1Object::operator =(const %1 &b) {\n%2\n%3}\n\n").arg(clssName, resultEqualOperator, resultEqualOperatorEmits);
-    result += QString("bool %1Object::operator ==(const %1 &b) const {\n%2}\n\n").arg(clssName, shiftSpace(resultEqualCheckOperator, 1));
+    baseResult += preFnc + QString("%1Object::%1Object(const %1 &core, QObject *parent) :\n").arg(clssName);
+    baseResult += QString("    TelegramTypeQObject(parent),\n") + resultTypes + QString("    m_core(core)\n");
+    baseResult += "{\n" + resultConstructorTypes + "}\n\n";
+    baseResult += preFnc + QString("%1Object::%1Object(QObject *parent) :\n").arg(clssName);
+    baseResult += QString("    TelegramTypeQObject(parent),\n") + resultTypes + QString("    m_core()\n");
+    baseResult += "{\n" + resultConstructorTypes + "}\n\n";
+    baseResult += preFnc + QString("%1Object::~%1Object() {\n}\n\n").arg(clssName);
+    baseResult += functions;
+    baseResult += preFnc + QString("%1Object &%1Object::operator =(const %1 &b) {\n%2\n%3}\n\n").arg(clssName, resultEqualOperator, resultEqualOperatorEmits);
+    baseResult += preFnc + QString("bool %1Object::operator ==(const %1 &b) const {\n%2}\n\n").arg(clssName, shiftSpace(resultEqualCheckOperator, 1));
 
-    result += QString("void %1Object::setClassType(quint32 classType) {\n%2\n    if(m_core.classType() == result) return;\n"
+    baseResult += preFnc + QString("void %1Object::setClassType(quint32 classType) {\n%2\n    if(m_core.classType() == result) return;\n"
                       "    m_core.setClassType(result);\n    Q_EMIT classTypeChanged();\n    Q_EMIT coreChanged();\n}\n\n").arg(clssName, typeSwitch);
-    result += QString("quint32 %1Object::classType() const {\n%2\n    return result;\n}\n\n").arg(clssName, typeSwitchBack);
+    baseResult += preFnc + QString("quint32 %1Object::classType() const {\n%2\n    return result;\n}\n\n").arg(clssName, typeSwitchBack);
 
-    result += QString("void %1Object::setCore(const %1 &core) {\n    operator =(core);\n}\n\n").arg(clssName);
-    result += QString("%1 %1Object::core() const {\n    return m_core;\n}\n\n").arg(clssName);
+    baseResult += preFnc + QString("void %1Object::setCore(const %1 &core) {\n    operator =(core);\n}\n\n").arg(clssName);
+    baseResult += preFnc + QString("%1 %1Object::core() const {\n    return m_core;\n}\n\n").arg(clssName);
 
-    result += resultPrivateSlots;
+    baseResult += resultPrivateSlots;
+
+    if(!m_inlineMode)
+        result += baseResult;
 
     QFile file(m_dst + "/" + clssName.toLower() + "object.cpp");
-    if(!file.open(QFile::WriteOnly))
-        return;
+    if(file.open(QFile::WriteOnly))
+    {
+        file.write(GENERATOR_SIGNATURE("//"));
+        file.write(result.toUtf8());
+        file.close();
+    }
 
-    file.write(GENERATOR_SIGNATURE("//"));
-    file.write(result.toUtf8());
-    file.close();
+    return baseResult;
 }
 
 void TypeObjectGenerator::writeType(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
     writeTypeHeader(name, types);
-    writeTypeClass(name, types);
+    if(!m_inlineMode)
+        writeTypeClass(name, types);
 }
 
 void TypeObjectGenerator::writePri(const QStringList &types)
