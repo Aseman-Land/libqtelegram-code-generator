@@ -227,14 +227,14 @@ void TelegramCoreGenerator::writeCpp(const QMap<QString, QList<GeneratorTypes::F
                                           "} else {\n%4}\nreturn msgId;").arg(functionName, argumentNames, t.returnType.name, shiftSpace(callBackError,1));
 
             QString answersInnter = QString("Q_UNUSED(attachedData);\n"
-                                            "mRecallArgs.remove(msgId);\n"
+                                            "mLastArgs = mRecallArgs.take(msgId);\n"
                                             "callBackCall<%1 >(msgId, result);\n"
                                             "stopTimeOut(msgId);\n"
                                             "Q_EMIT %2Answer(msgId, result);")
                                   .arg(t.returnType.name, functionName);
 
             QString errorsInnter = QString("Q_UNUSED(attachedData);\n"
-                                           "mRecallArgs.remove(msgId);\n"
+                                           "mLastArgs = mRecallArgs.take(msgId);\n"
                                            "%1;\nCallbackError error;\nerror.errorCode = errorCode;\n"
                                            "error.errorText = errorText;\nerror.null = false;\n"
                                            "callBackCall<%2 >(msgId, result, error);\n"

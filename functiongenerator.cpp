@@ -148,6 +148,11 @@ QString FunctionGenerator::pushFunction(const QString &clssName, const QString &
             if(i == 1 && arg.flagDedicated)
                 continue;
 
+            if(arg.isFlag && !definedFlags.contains(arg.argName))
+            {
+                result += QString("\nqint32 %1 = 0;").arg(arg.argName);
+                definedFlags.insert(arg.argName);
+            }
             if(!arg.flagName.isEmpty() && !definedFlags.contains(arg.flagName))
             {
                 result += QString("\nqint32 %1 = 0;\n").arg(arg.flagName);

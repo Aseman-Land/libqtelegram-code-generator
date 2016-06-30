@@ -44,6 +44,10 @@ public:
     static qint32 timeOut() { return mTimeOut; }
     static void setTimeOut(const qint32 &timeOut) { mTimeOut = timeOut; }
 
+    QVariantHash lastArguments() const {
+        return mLastArgs;
+    }
+
     virtual void init() = 0;
 
 /*! === methods === !*/
@@ -101,6 +105,7 @@ protected:
 private:
     QHash<qint64, void*> mCallbacks;
     QHash<qint64, QVariantHash> mRecallArgs;
+    QVariantHash mLastArgs;
     QHash<qint64, qint32> mTimer;
     static qint32 mTimeOut;
 
