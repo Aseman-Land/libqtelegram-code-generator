@@ -159,6 +159,7 @@ void TelegramCoreGenerator::writeCpp(const QMap<QString, QList<GeneratorTypes::F
     QString connectsResult;
     QString methodsResult;
     QString retriesResult;
+    int retriesCount = 0;
 
     QMapIterator<QString, QList<GeneratorTypes::FunctionStruct> > i(functions);
     while(i.hasNext())
@@ -249,7 +250,13 @@ void TelegramCoreGenerator::writeCpp(const QMap<QString, QList<GeneratorTypes::F
                            + QString("void TelegramCore::on%1Answer(qint64 msgId, %2, const QVariant &attachedData) {\n%3}\n\n").arg(classCase, returnArg, shiftSpace(answersInnter, 1))
                            + QString("void TelegramCore::on%1Error(qint64 msgId, qint32 errorCode, const QString &errorText, const QVariant &attachedData) {\n%2}\n").arg(classCase, shiftSpace(errorsInnter, 1));
 
-            retriesResult += QString("if(functionName == \"%1\") {\n    result = %1(%2);\n} else ").arg(functionName, recallArgs);
+            retriesResult += QString("if(functionName == \"%1\") {\n    result = %1(%2);\n}").arg(functionName, recallArgs);
+            if(retriesCount && retriesCount % 100 == 0) {
+                retriesResult += "\n#ifndef Q_CC_MSVC // break if-else chain on Microsoft compilers with nesting limits\n    else\n#endif\n";
+            } else {
+                retriesResult += " else ";
+            }
+            retriesCount++;
         }
     }
 
