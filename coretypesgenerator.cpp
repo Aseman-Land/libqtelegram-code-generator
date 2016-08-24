@@ -60,8 +60,10 @@ void CoreTypesGenerator::extract(const QString &data, const QString &layerVersio
 
 void CoreTypesGenerator::write(const QMap<QString, QString> &map, const QString &layerVersion)
 {
-    QString result = "#ifndef CORETYPES_H\n#define CORETYPES_H\n\n";
-    result += "class CoreTypes \n{\npublic:\n    enum Types {\n";
+    QString result = "#ifndef CORETYPES_H\n#define CORETYPES_H";
+    result += "\n\n#define TG_API_VERSION " + layerVersion;
+    result += "\n#define TG_API_" + layerVersion;
+    result += "\n\nnamespace CoreTypes \n{\n    enum Types {\n";
 
     QString typesResult;
     QMapIterator<QString,QString> i(map);
@@ -70,9 +72,9 @@ void CoreTypesGenerator::write(const QMap<QString, QString> &map, const QString 
         i.next();
         typesResult += QString("\ntype%1 = 0x%2,").arg(classCaseType(i.key()), i.value());
     }
-    typesResult += "\ntypeLayerVersion = " + layerVersion;
+    typesResult += "\ntypeLayerVersion = TG_API_VERSION";
 
-    result += shiftSpace(typesResult, 2) + "    };\n};\n\n#endif //CORETYPES_H\n";
+    result += shiftSpace(typesResult, 2) + "    };\n}\n\n#endif //CORETYPES_H\n";
 
     QFile file(m_dst + "/coretypes.h");
     if(!file.open(QFile::WriteOnly))
