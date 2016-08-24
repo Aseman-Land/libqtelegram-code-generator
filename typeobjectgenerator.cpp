@@ -77,8 +77,10 @@ QString TypeObjectGenerator::fetchFunction(const QString &name, const QList<Gene
 {
     QString result = "LQTG_FETCH_LOG;\nint x = in->fetchInt();\nswitch(x) {\n";
 
+    QSet<QString> addedCodes;
     foreach(const GeneratorTypes::TypeStruct &t, types)
     {
+        if(addedCodes.contains(t.typeCode)) continue; else addedCodes.insert(t.typeCode);
         result += QString("case %1: {\n").arg(t.typeName);
 
         QString fetchPart;
@@ -139,8 +141,10 @@ QString TypeObjectGenerator::pushFunction(const QString &name, const QList<Gener
     Q_UNUSED(name)
     QString result = "out->appendInt(m_classType);\nswitch(m_classType) {\n";
 
+    QSet<QString> addedCodes;
     foreach(const GeneratorTypes::TypeStruct &t, types)
     {
+        if(addedCodes.contains(t.typeCode)) continue; else addedCodes.insert(t.typeCode);
         result += QString("case %1: {\n").arg(t.typeName);
 
         QString fetchPart;
@@ -309,6 +313,7 @@ QString TypeObjectGenerator::writeTypeClass(const QString &name, const QList<Gen
 
     QString defaultType;
     QMap<QString, QMap<QString,GeneratorTypes::ArgStruct> > properties;
+    QSet<QString> addedCodes;
     for(int i=0; i<types.count(); i++)
     {
         const GeneratorTypes::TypeStruct &t = types[i];
@@ -318,8 +323,12 @@ QString TypeObjectGenerator::writeTypeClass(const QString &name, const QList<Gen
         if(t.typeName.contains("Empty") || t.typeName.contains("Invalid"))
             defaultType = t.typeName;
 
-        typeSwitch += QString("    case %3:\n        result = %2::%1;\n        break;\n").arg(t.typeName, clssName, classCaseType(t.typeName));
-        typeSwitchBack += QString("    case %2::%1:\n        result = %3;\n        break;\n").arg(t.typeName, clssName, classCaseType(t.typeName));
+        if(!addedCodes.contains(t.typeCode))
+        {
+            typeSwitch += QString("    case %3:\n        result = %2::%1;\n        break;\n").arg(t.typeName, clssName, classCaseType(t.typeName));
+            typeSwitchBack += QString("    case %2::%1:\n        result = %3;\n        break;\n").arg(t.typeName, clssName, classCaseType(t.typeName));
+            addedCodes.insert(t.typeCode);
+        }
 
         for(int j=0; j<t.args.length(); j++)
         {

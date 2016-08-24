@@ -72,8 +72,10 @@ QString TypeGenerator::fetchFunction(const QString &name, const QList<GeneratorT
 {
     QString result = "LQTG_FETCH_LOG;\nint x = in->fetchInt();\nswitch(x) {\n";
 
+    QSet<QString> addedCodes;
     foreach(const GeneratorTypes::TypeStruct &t, types)
     {
+        if(addedCodes.contains(t.typeCode)) continue; else addedCodes.insert(t.typeCode);
         result += QString("case %1: {\n").arg(t.typeName);
 
         QString fetchPart;
@@ -137,8 +139,10 @@ QString TypeGenerator::pushFunction(const QString &name, const QList<GeneratorTy
     Q_UNUSED(name)
     QString result = "out->appendInt(m_classType);\nswitch(m_classType) {\n";
 
+    QSet<QString> addedCodes;
     foreach(const GeneratorTypes::TypeStruct &t, types)
     {
+        if(addedCodes.contains(t.typeCode)) continue; else addedCodes.insert(t.typeCode);
         result += QString("case %1: {\n").arg(t.typeName);
 
         QString fetchPart;
@@ -165,8 +169,10 @@ QString TypeGenerator::streamReadFunction(const QString &name, const QList<Gener
                              "item.setClassType(static_cast<%1::%1ClassType>(type));\n"
                              "switch(type) {\n").arg(name);
 
+    QSet<QString> addedCodes;
     foreach(const GeneratorTypes::TypeStruct &t, types)
     {
+        if(addedCodes.contains(t.typeCode)) continue; else addedCodes.insert(t.typeCode);
         result += QString("case %2::%1: {\n").arg(t.typeName, name);
 
         QString fetchPart;
@@ -192,8 +198,10 @@ QString TypeGenerator::streamWriteFunction(const QString &name, const QList<Gene
     Q_UNUSED(name)
     QString result = "stream << static_cast<uint>(item.classType());\nswitch(item.classType()) {\n";
 
+    QSet<QString> addedCodes;
     foreach(const GeneratorTypes::TypeStruct &t, types)
     {
+        if(addedCodes.contains(t.typeCode)) continue; else addedCodes.insert(t.typeCode);
         result += QString("case %1::%2:\n").arg(name, t.typeName);
 
         QString fetchPart;
@@ -326,8 +334,10 @@ QString TypeGenerator::mapWriteFunction(const QString &name, const QList<Generat
 {
     QString result = "QMap<QString, QVariant> result;\nswitch(static_cast<int>(m_classType)) {\n";
 
+    QSet<QString> addedCodes;
     foreach(const GeneratorTypes::TypeStruct &t, types)
     {
+        if(addedCodes.contains(t.typeCode)) continue; else addedCodes.insert(t.typeCode);
         result += QString("case %1: {\n").arg(t.typeName);
         result += QString("    result[\"classType\"] = \"%1::%2\";\n").arg(classCaseType(name), t.typeName);
 
