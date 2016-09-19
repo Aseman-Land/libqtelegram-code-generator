@@ -221,6 +221,36 @@ QString TypeGenerator::streamWriteFunction(const QString &name, const QList<Gene
     return result;
 }
 
+QString TypeGenerator::debugFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
+{
+    QString result = "QDebugStateSaver saver(debug);\nQ_UNUSED(saver)\n"
+                     "debug.nospace() << \"Telegram." + name + "(\";\n"
+                     "switch(item.classType()) {\n";
+
+    QSet<QString> addedCodes;
+    foreach(const GeneratorTypes::TypeStruct &t, types)
+    {
+        if(addedCodes.contains(t.typeCode)) continue; else addedCodes.insert(t.typeCode);
+        result += QString("case %1::%2:\n").arg(name, t.typeName);
+
+        QString fetchPart;
+        fetchPart += "debug.nospace() << \"classType: " + t.typeName + "\";\n";
+        foreach(const GeneratorTypes::ArgStruct &arg, t.args)
+        {
+            if(arg.flagDedicated)
+                continue;
+
+            fetchPart += QString("debug.nospace() << \", %1: \" << item.%1();\n").arg(cammelCaseType(arg.argName));
+        }
+
+        result += shiftSpace(fetchPart, 1);
+        result += "    break;\n";
+    }
+
+    result += "}\ndebug.nospace() << \")\";\nreturn debug;\n";
+    return result;
+}
+
 QString TypeGenerator::typeMapReadFunction(const QString &arg, const QString &type, const QString &prepend, const GeneratorTypes::ArgStruct &argStruct)
 {
     QString result;
@@ -460,6 +490,8 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
     result += QString("QDataStream LIBQTELEGRAMSHARED_EXPORT &operator<<(QDataStream &stream, const %1 &item);\n"
                       "QDataStream LIBQTELEGRAMSHARED_EXPORT &operator>>(QDataStream &stream, %1 &item);\n\n").arg(clssName);
 
+    result += QString("QDebug LIBQTELEGRAMSHARED_EXPORT operator<<(QDebug debug,  const %1 &item);\n\n").arg(clssName);
+
     result += writeTypeClass(name, types) + "\n";
 
     result = QString("#ifndef LQTG_TYPE_%1\n#define LQTG_TYPE_%1\n\n").arg(clssName.toUpper()) + result;
@@ -605,6 +637,8 @@ QString TypeGenerator::writeTypeClass(const QString &name, const QList<Generator
     result += classResult;
     result += preFnc + QString("QDataStream &operator<<(QDataStream &stream, const %1 &item) {\n%2}\n\n").arg(clssName, shiftSpace(streamWriteFunction(clssName, modifiedTypes), 1));
     result += preFnc + QString("QDataStream &operator>>(QDataStream &stream, %1 &item) {\n%2}\n\n").arg(clssName, shiftSpace(streamReadFunction(clssName, modifiedTypes), 1));
+
+    result += preFnc + QString("QDebug operator<<(QDebug debug,  const %1 &item) {\n%2}\n\n").arg(clssName, shiftSpace(debugFunction(clssName, modifiedTypes), 1) );
 
     if(m_inlineMode)
         QFile::remove(m_dst + "/" + clssName.toLower() + ".cpp");

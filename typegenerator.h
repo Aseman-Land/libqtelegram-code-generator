@@ -23,6 +23,7 @@ protected:
     QString pushFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     QString streamReadFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     QString streamWriteFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
+    QString debugFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     QString typeMapReadFunction(const QString &arg, const QString &type, const QString &prepend, const GeneratorTypes::ArgStruct &argStruct);
     QString mapReadFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     QString typeMapWriteFunction(const QString &arg, const QString &type, const QString &prepend, const GeneratorTypes::ArgStruct &argStruct);
