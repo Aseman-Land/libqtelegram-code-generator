@@ -99,38 +99,50 @@ QString TypeGenerator::fetchFunction(const QString &name, const QList<GeneratorT
 QString TypeGenerator::typeToPushFunction(const QString &arg, const QString &type, const GeneratorTypes::ArgStruct &argStruct)
 {
     QString result;
+    QString baseResult;
+
     if(type == "qint32")
-        result += "out->appendInt(" + arg + ");";
+        baseResult += "out->appendInt(" + arg + ");";
     else
     if(type == "bool")
-        result += "out->appendBool(" + arg + ");";
+        baseResult += "out->appendBool(" + arg + ");";
     else
     if(type == "qint64")
-        result += "out->appendLong(" + arg + ");";
+        baseResult += "out->appendLong(" + arg + ");";
     else
     if(type == "qreal")
-        result += "out->appendDouble(" + arg + ");";
+        baseResult += "out->appendDouble(" + arg + ");";
     else
     if(type == "QByteArray")
-        result += "out->appendBytes(" + arg + ");";
+        baseResult += "out->appendBytes(" + arg + ");";
     else
     if(type == "QString")
-        result += "out->appendQString(" + arg + ");";
+        baseResult += "out->appendQString(" + arg + ");";
     else
     if(type.contains("QList<"))
     {
         QString innerType = type.mid(6,type.length()-7);
-        result += "out->appendInt(CoreTypes::typeVector);\n";
+        baseResult += "out->appendInt(CoreTypes::typeVector);\n";
 
-        result += "out->appendInt(" + arg + ".count());\n";
-        result += "for (qint32 i = 0; i < " + arg + ".count(); i++) {\n";
-        result += "    " + typeToPushFunction(arg + "[i]", innerType, argStruct) + "\n}";
+        GeneratorTypes::ArgStruct tmpArg = argStruct;
+        tmpArg.flagName.clear();
+
+        baseResult += "out->appendInt(" + arg + ".count());\n";
+        baseResult += "for (qint32 i = 0; i < " + arg + ".count(); i++) {\n";
+        baseResult += "    " + typeToPushFunction(arg + "[i]", innerType, tmpArg) + "\n}";
     }
     else
     {
-        result += arg + ".push(out);";
+        baseResult += arg + ".push(out);";
     }
 
+    if(!argStruct.flagName.isEmpty())
+    {
+        result += QString("if(m_%1 & 1<<%2) ").arg(argStruct.flagName).arg(argStruct.flagValue);
+        baseResult = "{\n" + shiftSpace(baseResult, 1) + "}";
+    }
+
+    result += baseResult;
     return result;
 }
 
@@ -492,7 +504,8 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
 
     result += QString("QDebug LIBQTELEGRAMSHARED_EXPORT operator<<(QDebug debug,  const %1 &item);\n\n").arg(clssName);
 
-    result += writeTypeClass(name, types) + "\n";
+    if(m_inlineMode)
+        result += writeTypeClass(name, types) + "\n";
 
     result = QString("#ifndef LQTG_TYPE_%1\n#define LQTG_TYPE_%1\n\n").arg(clssName.toUpper()) + result;
     result += QString("#endif // LQTG_TYPE_%1\n").arg(clssName.toUpper());
@@ -601,7 +614,19 @@ QString TypeGenerator::writeTypeClass(const QString &name, const QList<Generator
             }
             else
             {
-                functions += preFnc + QString("void %1::set%2(%3%4) {\n    m_%4 = %4;\n}\n\n").arg(clssName, classCase, inputType, cammelCase);
+                QString flagPart;
+                if(!arg.flagName.isEmpty())
+                {
+                    if(inputType.contains("QList"))
+                        flagPart = QString("\n    if(%1.length()) m_%2 = (m_%2 | (1<<%3));\n"
+                                           "    else m_%2 = (m_%2 & ~(1<<%3));").arg(cammelCase, arg.flagName).arg(arg.flagValue);
+                    else
+                    if(arg.type.qtgType)
+                        flagPart = QString("\n    if(!%1.isNull()) m_%2 = (m_%2 | (1<<%3));\n"
+                                           "    else m_%2 = (m_%2 & ~(1<<%3));").arg(cammelCase, arg.flagName).arg(arg.flagValue);
+                }
+
+                functions += preFnc + QString("void %1::set%2(%3%4) {" + flagPart + "\n    m_%4 = %4;\n}\n\n").arg(clssName, classCase, inputType, cammelCase);
                 functions += preFnc + QString("%3 %1::%2() const {\n    return m_%2;\n}\n\n").arg(clssName, cammelCase, type.name);
             }
         }

@@ -259,8 +259,9 @@ void FunctionGenerator::writeTypeHeader(const QString &name, const QList<Generat
     result += resultFnc;
 
     result += "};\n\n";
-    result += "}\n" + writeTypeClass(name, functions) +
-              "\n}\n\n";
+    result += "}\n";
+    if(m_inlineMode) result += writeTypeClass(name, functions) + "\n";
+    result += "}\n\n";
 
     result = includes + "\n" + result;
     result = QString("#ifndef LQTG_FNC_%1\n#define LQTG_FNC_%1\n\n").arg(clssName.toUpper()) + result;
@@ -337,7 +338,7 @@ QString FunctionGenerator::writeTypeClass(const QString &name, const QList<Gener
     else
     {
         QFile file(m_dst + "/" + clssName.toLower() + ".cpp");
-        if(!file.open(QFile::WriteOnly))
+        if(file.open(QFile::WriteOnly))
         {
             file.write(GENERATOR_SIGNATURE("//"));
             file.write(result.toUtf8());
@@ -351,7 +352,7 @@ QString FunctionGenerator::writeTypeClass(const QString &name, const QList<Gener
 void FunctionGenerator::writeType(const QString &name, const QList<GeneratorTypes::FunctionStruct> &types)
 {
     writeTypeHeader(name, types);
-    if(m_inlineMode)
+    if(!m_inlineMode)
         writeTypeClass(name, types);
 }
 

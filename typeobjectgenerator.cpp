@@ -276,7 +276,8 @@ void TypeObjectGenerator::writeTypeHeader(const QString &name, const QList<Gener
     result = QString("#ifndef LQTG_TYPE_%1_OBJECT\n#define LQTG_TYPE_%1_OBJECT\n\n").arg(clssName.toUpper()) + result;
     result += propertiesResult + "\n";
     result += bodyResult;
-    result += writeTypeClass(name, types);
+    if(m_inlineMode)
+        result += writeTypeClass(name, types);
     result += QString("#endif // LQTG_TYPE_%1_OBJECT\n").arg(clssName.toUpper());
 
     QFile file(m_dst + "/" + clssName.toLower() + "object.h");
