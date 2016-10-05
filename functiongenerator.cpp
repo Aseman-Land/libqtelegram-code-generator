@@ -119,7 +119,7 @@ QString FunctionGenerator::typeToPushFunction(const QString &arg, const QString 
 
     if(argStruct.flagDedicated || justFlagTest)
         result = QString("if(%1 != 0) %2 = (1<<%3 | %2);")
-                .arg(arg + (argStruct.type.isList?".count()":""))
+                .arg(arg + (argStruct.type.isList || type.contains("QByteArray")?".count()":""))
                 .arg(argStruct.flagName).arg(argStruct.flagValue);
     else
     if(!argStruct.flagName.isEmpty())
