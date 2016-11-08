@@ -42,10 +42,17 @@ qint64 TelegramCore::retry(qint64 mid)
     return result;
 }
 
+bool TelegramCore::isConnected() const {
+    if (mApi && mApi->mainSession()) {
+        return mApi->mainSession()->state() == QAbstractSocket::ConnectedState;
+    }
+    return false;
+}
+
 void TelegramCore::timerEvent(QTimerEvent *e)
 {
     const qint64 msgId = mTimer.key(e->timerId());
-    if(msgId)
+    if(msgId && isConnected())
     {
         mTimer.remove(msgId);
         killTimer(e->timerId());

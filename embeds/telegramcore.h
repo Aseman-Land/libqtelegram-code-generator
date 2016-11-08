@@ -49,6 +49,7 @@ public:
     }
 
     virtual void init() = 0;
+    bool isConnected() const;
 
 /*! === methods === !*/
 
