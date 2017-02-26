@@ -65,13 +65,6 @@ void TelegramCore::timerEvent(QTimerEvent *e)
 
 TelegramCore::~TelegramCore()
 {
-    QHashIterator<qint64, void*> i(mCallbacks);
-    while(i.hasNext())
-    {
-        i.next();
-        Callback<int> *ptr = reinterpret_cast<Callback<int>*>(i.value());
-        delete ptr;
-    }
     mCallbacks.clear();
 }
 
