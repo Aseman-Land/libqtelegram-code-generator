@@ -180,7 +180,6 @@ GeneratorTypes::QtTypeStruct AbstractGenerator::translateType(const QString &typ
         QString extra;
         if(type == "Updates")
             extra = "type";
-        qDebug() << type;
 
         result.name = QString(addNameSpace? "Types::" : "") + classCaseType(type);
         result.includes << QString("#include \"%1\"").arg(prePath + classCaseType(type).toLower() + extra + postPath + ".h");
