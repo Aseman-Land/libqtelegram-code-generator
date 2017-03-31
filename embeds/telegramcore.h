@@ -90,9 +90,7 @@ protected:
     }
 
     template<typename T>
-    Callback<T> callBackGet(qint64 msgId) {
-        return mCallbacks.value(msgId).getCallback<T>();
-    }
+    Callback<T> callBackGet(qint64 msgId);
 
     template<typename T>
     void callBackCall(qint64 msgId, const T &result, const CallbackError &error = CallbackError()) {
@@ -172,5 +170,10 @@ private:
     const std::type_info* m_argResType;
     std::shared_ptr<void> m_ptrCb;
 };
+
+template<typename T>
+TelegramCore::Callback<T> TelegramCore::callBackGet(qint64 msgId) {
+    return mCallbacks.value(msgId).getCallback<T>();
+}
 
 #endif // TELEGRAMCORE_H
