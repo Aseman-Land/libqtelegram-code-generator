@@ -17,16 +17,16 @@ public:
     void extract(const QString &data);
 
 protected:
-    QString typeToFetchFunction(const QString &arg, const QString &type, const GeneratorTypes::ArgStruct &argStruct);
+    QString typeToFetchFunction(const QString &arg, const QString &type, const GeneratorTypes::ArgStruct &argStruct, bool forcePointer);
     QString fetchFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
-    QString typeToPushFunction(const QString &arg, const QString &type, const GeneratorTypes::ArgStruct &argStruct);
+    QString typeToPushFunction(const QString &arg, const QString &type, const GeneratorTypes::ArgStruct &argStruct, bool forcePointer);
     QString pushFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     QString streamReadFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     QString streamWriteFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     QString debugFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
-    QString typeMapReadFunction(const QString &arg, const QString &type, const QString &prepend, const GeneratorTypes::ArgStruct &argStruct);
+    QString typeMapReadFunction(const QString &arg, const QString &type, const QString &prepend, const GeneratorTypes::ArgStruct &argStruct, bool forcePointer);
     QString mapReadFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
-    QString typeMapWriteFunction(const QString &arg, const QString &type, const QString &prepend, const GeneratorTypes::ArgStruct &argStruct);
+    QString typeMapWriteFunction(const QString &arg, const QString &type, const QString &prepend, const GeneratorTypes::ArgStruct &argStruct, bool forcePointer);
     QString mapWriteFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     void writeTypeHeader(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     QString writeTypeClass(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);

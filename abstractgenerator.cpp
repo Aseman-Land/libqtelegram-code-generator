@@ -1,5 +1,7 @@
 #include "abstractgenerator.h"
 
+#include <QDebug>
+
 QString AbstractGenerator::shiftSpace(const QString &str, int level)
 {
     QString space;
@@ -175,8 +177,13 @@ GeneratorTypes::QtTypeStruct AbstractGenerator::translateType(const QString &typ
     }
     else
     {
+        QString extra;
+        if(type == "Updates")
+            extra = "type";
+        qDebug() << type;
+
         result.name = QString(addNameSpace? "Types::" : "") + classCaseType(type);
-        result.includes << QString("#include \"%1\"").arg(prePath + classCaseType(type).toLower() + postPath + ".h");
+        result.includes << QString("#include \"%1\"").arg(prePath + classCaseType(type).toLower() + extra + postPath + ".h");
         result.constRefrence = true;
         result.qtgType = true;
     }
@@ -185,7 +192,7 @@ GeneratorTypes::QtTypeStruct AbstractGenerator::translateType(const QString &typ
     return result;
 }
 
-QMap<QString, QList<GeneratorTypes::TypeStruct> > AbstractGenerator::extractTypes(const QString &data, const QString &objectsPostPath, const QString &objectsPrePath, const QString &customHeader)
+QMap<QString, QList<GeneratorTypes::TypeStruct> > AbstractGenerator::extractTypes(const QString &data, QString objectsPostPath, const QString &objectsPrePath, const QString &customHeader)
 {
     QMap<QString, QList<GeneratorTypes::TypeStruct> > types;
     const QStringList &lines = QString(data).split("\n",QString::SkipEmptyParts);
@@ -236,6 +243,9 @@ QMap<QString, QList<GeneratorTypes::TypeStruct> > AbstractGenerator::extractType
 
             int ifIdx = typePart.indexOf("?");
             bool hasIf = (ifIdx != -1);
+            if(typePart == "Updates")
+                typePart = "UpdatesType";
+
             arg.type = translateType(hasIf? typePart.mid(ifIdx+1) : typePart, false, objectsPrePath, objectsPostPath);
             if(hasIf)
             {
