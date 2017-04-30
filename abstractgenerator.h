@@ -90,8 +90,8 @@ protected:
     QString undoCase(const QString &str);
     QString classCaseType(const QString &str);
     QString unclassCaseType(const QString &str);
-    GeneratorTypes::QtTypeStruct translateType(const QString &type, bool addNameSpace = false, const QString &prePath = QString(), const QString &postPath = QString());
-    QMap<QString, QList<GeneratorTypes::TypeStruct> > extractTypes(const QString &data, QString objectsPostPath = QString(), const QString &objectsPrePath = QString(), const QString &customHeader = QString());
+    GeneratorTypes::QtTypeStruct translateType(const QString &type, bool addNameSpace = false, const QString &prePath = QString(), const QString &postPath = QString(), const QString &classPreName = QString());
+    QMap<QString, QList<GeneratorTypes::TypeStruct> > extractTypes(const QString &data, QString objectsPostPath = QString(), const QString &objectsPrePath = QString(), const QString &customHeader = QString(), const QString &classPreName = QString());
     QMap<QString, QList<GeneratorTypes::FunctionStruct> > extractFunctions(const QString &data);
 };
 

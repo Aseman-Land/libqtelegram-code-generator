@@ -112,7 +112,7 @@ QString AbstractGenerator::unclassCaseType(const QString &str)
     return result;
 }
 
-GeneratorTypes::QtTypeStruct AbstractGenerator::translateType(const QString &type, bool addNameSpace, const QString &prePath, const QString &postPath)
+GeneratorTypes::QtTypeStruct AbstractGenerator::translateType(const QString &type, bool addNameSpace, const QString &prePath, const QString &postPath, const QString &classPreName)
 {
     GeneratorTypes::QtTypeStruct result;
     result.originalType = type;
@@ -166,7 +166,7 @@ GeneratorTypes::QtTypeStruct AbstractGenerator::translateType(const QString &typ
     else
     if(type.contains("Vector<"))
     {
-        GeneratorTypes::QtTypeStruct innerType = translateType(type.mid(7,type.length()-8), addNameSpace, prePath);
+        GeneratorTypes::QtTypeStruct innerType = translateType(type.mid(7,type.length()-8), addNameSpace, prePath, "", classPreName);
 
         result.includes << "#include <QList>";
         result.includes << innerType.includes;
@@ -181,8 +181,8 @@ GeneratorTypes::QtTypeStruct AbstractGenerator::translateType(const QString &typ
         if(type == "Updates")
             extra = "type";
 
-        result.name = QString(addNameSpace? "Types::" : "") + classCaseType(type);
-        result.includes << QString("#include \"%1\"").arg(prePath + classCaseType(type).toLower() + extra + postPath + ".h");
+        result.name = classPreName + QString(addNameSpace? "Types::" : "") + classCaseType(type);
+        result.includes << QString("#include \"%1\"").arg(classPreName.toLower() + prePath + classCaseType(type).toLower() + extra + postPath + ".h");
         result.constRefrence = true;
         result.qtgType = true;
     }
@@ -191,7 +191,7 @@ GeneratorTypes::QtTypeStruct AbstractGenerator::translateType(const QString &typ
     return result;
 }
 
-QMap<QString, QList<GeneratorTypes::TypeStruct> > AbstractGenerator::extractTypes(const QString &data, QString objectsPostPath, const QString &objectsPrePath, const QString &customHeader)
+QMap<QString, QList<GeneratorTypes::TypeStruct> > AbstractGenerator::extractTypes(const QString &data, QString objectsPostPath, const QString &objectsPrePath, const QString &customHeader, const QString &classPreName)
 {
     QMap<QString, QList<GeneratorTypes::TypeStruct> > types;
     const QStringList &lines = QString(data).split("\n",QString::SkipEmptyParts);
@@ -245,7 +245,7 @@ QMap<QString, QList<GeneratorTypes::TypeStruct> > AbstractGenerator::extractType
             if(typePart == "Updates")
                 typePart = "UpdatesType";
 
-            arg.type = translateType(hasIf? typePart.mid(ifIdx+1) : typePart, false, objectsPrePath, objectsPostPath);
+            arg.type = translateType(hasIf? typePart.mid(ifIdx+1) : typePart, false, objectsPrePath, objectsPostPath, classPreName);
             if(hasIf)
             {
                 QString flagsPart = typePart.mid(0,ifIdx);

@@ -1,0 +1,39 @@
+#ifndef BOTTYPESGENERATOR_H
+#define BOTTYPESGENERATOR_H
+
+#include "abstractgenerator.h"
+
+#include <QStringList>
+#include <QRegExp>
+#include <QMap>
+#include <QSet>
+
+class BotTypesGenerator : public AbstractGenerator
+{
+public:
+    BotTypesGenerator(const QString &dest, bool inlineMode = false);
+    ~BotTypesGenerator();
+
+    void extract(const QString &data);
+
+protected:
+    QString streamReadFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
+    QString streamWriteFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
+    QString debugFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
+    QString typeMapReadFunction(const QString &arg, const QString &type, const QString &prepend, const GeneratorTypes::ArgStruct &argStruct, bool forcePointer);
+    QString mapReadFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
+    QString typeMapWriteFunction(const QString &arg, const QString &type, const QString &prepend, const GeneratorTypes::ArgStruct &argStruct, bool forcePointer);
+    QString mapWriteFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
+    void writeTypeHeader(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
+    QString writeTypeClass(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
+    void writeType(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
+    void writePri(const QStringList &types);
+    void writeMainHeader(const QStringList &types);
+    void copyEmbeds();
+
+private:
+    QString m_dst;
+    bool m_inlineMode;
+};
+
+#endif // BOTTYPESGENERATOR_H

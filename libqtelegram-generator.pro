@@ -24,7 +24,8 @@ SOURCES += main.cpp \
     telegramcoregenerator.cpp \
     lqtgtypegenerator.cpp \
     documentsgenerator.cpp \
-    databasegenerator.cpp
+    databasegenerator.cpp \
+    bottypesgenerator.cpp
 
 HEADERS += \
     typegenerator.h \
@@ -36,7 +37,8 @@ HEADERS += \
     telegramcoregenerator.h \
     lqtgtypegenerator.h \
     documentsgenerator.h \
-    databasegenerator.h
+    databasegenerator.h \
+    bottypesgenerator.h
 
 RESOURCES += \
     resource.qrc
