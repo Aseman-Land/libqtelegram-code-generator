@@ -14,7 +14,6 @@
 #include <typeinfo>
 #include <utility>
 
-#include "telegramapi.h"
 #include "telegramcore_globals.h"
 #include "libqtelegram_global.h"
 

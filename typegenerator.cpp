@@ -459,8 +459,6 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
     QString privateResult = "private:\n";
     QString includes = "#include \"telegramtypeobject.h\"\n\n#include <QMetaType>\n#include <QVariant>\n";
     includes +=
-            "#include \"core/inboundpkt.h\"\n"
-            "#include \"core/outboundpkt.h\"\n"
             "#include \"../coretypes.h\"\n\n"
             "#include <QDataStream>\n\n";
 

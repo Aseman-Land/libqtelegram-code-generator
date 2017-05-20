@@ -203,9 +203,7 @@ void FunctionGenerator::writeTypeHeader(const QString &name, const QList<Generat
     QString includes = "#include \"telegramfunctionobject.h\"\n";
     if(m_inlineMode)
     {
-        includes += "#include \"core/inboundpkt.h\"\n"
-                    "#include \"core/outboundpkt.h\"\n"
-                    "#include \"../coretypes.h\"\n\n";
+        includes += "#include \"../coretypes.h\"\n\n";
     }
     QString resultFnc;
 
