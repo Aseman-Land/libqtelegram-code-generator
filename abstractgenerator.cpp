@@ -22,6 +22,12 @@ QString AbstractGenerator::fixDeniedNames(const QString &str)
     if(str == "public")
         return "publicValue";
     else
+    if(str == "static")
+        return "staticValue";
+    else
+    if(str == "delete")
+        return "deleteValue";
+    else
         return str;
 }
 
