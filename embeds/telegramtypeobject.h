@@ -18,6 +18,9 @@
 #endif
 
 #include <QCryptographicHash>
+#include <QVariant>
+#include <QJsonDocument>
+
 #include "libqtelegram_global.h"
 
 class InboundPkt;
@@ -40,6 +43,11 @@ public:
     bool isNull() const { return mNull; }
     bool operator==(bool stt) { return mNull != stt; }
     bool operator!=(bool stt) { return !operator ==(stt); }
+
+    virtual QMap<QString, QVariant> toMap() const = 0;
+    QString toJson() const {
+        return QJsonDocument::fromVariant( toMap() ).toJson(QJsonDocument::Indented);
+    }
 
     static qint64 constructedCount() {
         return mConstructedCount;
