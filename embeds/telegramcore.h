@@ -92,9 +92,14 @@ protected:
     Callback<T> callBackGet(qint64 msgId);
 
     template<typename T>
-    void callBackCall(qint64 msgId, const T &result, const CallbackError &error = CallbackError()) {
-        auto cbs = mCallbacks.take(msgId);
-        cbs(msgId, result, error);
+    void callBackCall(qint64 msgId, const T &result, const CallbackError &error = CallbackError(), bool remove = true) {
+        if(remove) {
+            auto cbs = mCallbacks.take(msgId);
+            cbs(msgId, result, error);
+        } else {
+            auto cbs = mCallbacks.value(msgId);
+            cbs(msgId, result, error);
+        }
     }
 
 private:
