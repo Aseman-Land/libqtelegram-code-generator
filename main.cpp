@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
     ApiGenerator(destPath + "/telegram/").extract(data);
     TelegramCoreGenerator(destPath + "/telegram/").extract(data);
     DocumentsGenerator(destPath + "/telegram/documents/").extract(data);
-    DatabaseGenerator(destPath + "/telegram/").extract(data);
+//    DatabaseGenerator(destPath + "/telegram/").extract(data);
 
     return 0;
 }
