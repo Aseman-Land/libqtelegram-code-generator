@@ -289,7 +289,11 @@ QString TypeGenerator::typeMapReadFunction(const QString &arg, const QString &ty
         if(isList)
             baseResult += QString("%1.value<%2>();").arg(prepend, type);
         else
-            baseResult += QString("result.set%1( %2.value<%3>() );").arg(classCaseType(arg), prepend, type);
+            baseResult += QString("QVariant _%4_var = %2;\n"
+                                  "if( !_%4_var.isNull() ) {\n"
+                                  "    _%4_var.convert( QVariant::nameToType(\"%3\") );\n"
+                                  "    result.set%1( _%4_var.value<%3>() );\n"
+                                  "}\n").arg(classCaseType(arg), prepend, type, arg);
     }
     else
     if(type.contains("QList<"))
@@ -307,7 +311,9 @@ QString TypeGenerator::typeMapReadFunction(const QString &arg, const QString &ty
         if(isList)
             baseResult += QString("%1::fromMap(%2.toMap())").arg(type, prepend);
         else
-            baseResult += QString("result.set%1( %2::fromMap(%3.toMap()) );").arg(classCaseType(arg), type, prepend);
+            baseResult += QString("QVariant _%4_var = %3;\n"
+                                  "if( !_%4_var.isNull() )\n"
+                                  "    result.set%1( %2::fromMap(_%4_var.toMap()) );\n").arg(classCaseType(arg), type, prepend, arg);
     }
 
     result += baseResult;
@@ -359,9 +365,16 @@ QString TypeGenerator::typeMapWriteFunction(const QString &arg, const QString &t
        type == "QByteArray")
     {
         if(isList)
-            baseResult += prepend + QString(" QVariant::fromValue<%2>(m_%1);").arg(arg, type);
-        else
-            baseResult += prepend + QString(" QVariant::fromValue<%2>(%1());").arg(arg, type);
+            baseResult += QString("%1 QVariant::fromValue<%3>(m_%2);").arg(prepend, arg, type);
+        else {
+            if(type == "qint32" ||
+               type == "qint64" ||
+               type == "bool" ||
+               type == "qreal")
+                baseResult += QString("if( %2() ) %1 QString::number(%2());").arg(prepend, arg);
+            else
+                baseResult += QString("if( !m_%2.isEmpty() ) %1 QVariant::fromValue<%3>(m_%2);").arg(prepend, arg, type);
+        }
     }
     else
     if(type.contains("QList<"))
@@ -378,7 +391,7 @@ QString TypeGenerator::typeMapWriteFunction(const QString &arg, const QString &t
         if(forcePointer)
             baseResult += prepend + QString(" (m_%1? *m_%1 : %2()).toMap();").arg(arg, type);
         else
-            baseResult += prepend + QString(" m_%1.toMap();").arg(arg);
+            baseResult += QString("if( !m_%2.isNull() ) %1 m_%2.toMap();").arg(prepend, arg);
     }
 
     result += baseResult;
@@ -508,7 +521,8 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
 
     result += QString("    void setClassType(%1ClassType classType);\n    %1ClassType classType() const;\n\n").arg(clssName);
     result += "    bool fetch(InboundPkt *in);\n    bool push(OutboundPkt *out) const;\n\n";
-    result += QString("    QMap<QString, QVariant> toMap() const;\n    static %1 fromMap(const QMap<QString, QVariant> &map);\n\n").arg(clssName);
+    result += QString("    QMap<QString, QVariant> toMap() const;\n    static %1 fromMap(const QMap<QString, QVariant> &map);\n"
+                      "    static %1 fromJson(const QString &json);\n\n").arg(clssName);
     result += QString("    bool operator ==(const %1 &b) const;\n"
                       "    %1 &operator =(const %1 &b);\n\n").arg(clssName);
     result += "    bool operator==(bool stt) const { return isNull() != stt; }\n"
@@ -653,8 +667,11 @@ QString TypeGenerator::writeTypeClass(const QString &name, const QList<Generator
                         flagPart = QString("\n    if(%1.length()) m_%2 = (m_%2 | (1<<%3));\n"
                                            "    else m_%2 = (m_%2 & ~(1<<%3));").arg(cammelCase, arg.flagName).arg(arg.flagValue);
                     else
-                    if(arg.type.qtgType)
+                    if(arg.type.qtgType || arg.type.constRefrence)
                         flagPart = QString("\n    if(!%1.isNull()) m_%2 = (m_%2 | (1<<%3));\n"
+                                           "    else m_%2 = (m_%2 & ~(1<<%3));").arg(cammelCase, arg.flagName).arg(arg.flagValue);
+                    else
+                        flagPart = QString("\n    if(%1) m_%2 = (m_%2 | (1<<%3));\n"
                                            "    else m_%2 = (m_%2 & ~(1<<%3));").arg(cammelCase, arg.flagName).arg(arg.flagValue);
                 }
 
@@ -700,6 +717,7 @@ QString TypeGenerator::writeTypeClass(const QString &name, const QList<Generator
     classResult += preFnc + QString("bool %1::push(OutboundPkt *out) const {\n%2}\n\n").arg(clssName, shiftSpace(pushFunction(name, modifiedTypes), 1));
     classResult += preFnc + QString("QMap<QString, QVariant> %1::toMap() const {\n%2}\n\n").arg(clssName, shiftSpace(mapWriteFunction(name, modifiedTypes), 1));
     classResult += preFnc + QString("%1 %1::fromMap(const QMap<QString, QVariant> &map) {\n%2}\n\n").arg(clssName, shiftSpace(mapReadFunction(name, modifiedTypes), 1));
+    classResult += preFnc + QString("%1 %1::fromJson(const QString &json) {\n    return %1::fromMap(QJsonDocument::fromJson(json.toUtf8()).toVariant().toMap());\n}\n\n").arg(clssName);
     classResult +=preFnc +  QString("QByteArray %1::getHash(QCryptographicHash::Algorithm alg) const {\n"
                                     "    QByteArray data;\n    QDataStream str(&data, QIODevice::WriteOnly);\n"
                                     "    str << *this;\n    return QCryptographicHash::hash(data, alg);\n}\n\n").arg(clssName);

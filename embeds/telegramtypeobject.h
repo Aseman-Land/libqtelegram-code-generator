@@ -45,8 +45,8 @@ public:
     bool operator!=(bool stt) { return !operator ==(stt); }
 
     virtual QMap<QString, QVariant> toMap() const = 0;
-    QString toJson() const {
-        return QJsonDocument::fromVariant( toMap() ).toJson(QJsonDocument::Indented);
+    QString toJson(QJsonDocument::JsonFormat format = QJsonDocument::Indented) const {
+        return QJsonDocument::fromVariant( toMap() ).toJson(format);
     }
 
     static qint64 constructedCount() {
