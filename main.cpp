@@ -7,6 +7,7 @@
 #include "telegramcoregenerator.h"
 #include "documentsgenerator.h"
 #include "databasegenerator.h"
+#include "bottypesgenerator.h"
 
 #include <QFile>
 #include <QDir>
@@ -37,6 +38,7 @@ int main(int argc, char *argv[])
     const QString &data = file.readAll();
 
     TypeGenerator(destPath + "/telegram/types", false).extract(data);
+    BotTypesGenerator(destPath + "/telegram/bottypes", false).extract(data);
     LqtgTypeGenerator(destPath + "/telegram/customtypes", false).extract(data);
     FunctionGenerator(destPath + "/telegram/functions", false).extract(data);
     TypeObjectGenerator(destPath + "/telegram/objects", false).extract(data);

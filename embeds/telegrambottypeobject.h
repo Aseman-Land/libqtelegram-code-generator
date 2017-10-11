@@ -5,38 +5,22 @@
 #ifndef TELEGRAMTYPEOBJECT_H
 #define TELEGRAMTYPEOBJECT_H
 
-#define LQTG_FETCH_ASSERT setError(true)
-#define LQTG_PUSH_ASSERT setError(true)
-
-#ifndef LQTG_ENABLE_LOG
-#define LQTG_FETCH_LOG
-#define LQTG_PUSH_LOG
-#else
-#include <QDebug>
-#define LQTG_FETCH_LOG qDebug() << this << __PRETTY_FUNCTION__;
-#define LQTG_PUSH_LOG qDebug() << this << __PRETTY_FUNCTION__;
-#endif
-
 #include <QCryptographicHash>
 #include <QVariant>
-#include <QJsonDocument>
+#include <QMap>
 
 #include "libqtelegram_global.h"
 
-class InboundPkt;
-class OutboundPkt;
-class LIBQTELEGRAMSHARED_EXPORT TelegramTypeObject
+class LIBQTELEGRAMSHARED_EXPORT TelegramBotTypeObject
 {
 public:
     struct Null { };
     static const Null null;
 
-    TelegramTypeObject();
-    TelegramTypeObject(const Null&);
-    ~TelegramTypeObject();
+    TelegramBotTypeObject();
+    TelegramBotTypeObject(const Null&);
+    ~TelegramBotTypeObject();
 
-    virtual bool fetch(InboundPkt *in) = 0;
-    virtual bool push(OutboundPkt *out) const = 0;
     virtual QByteArray getHash(QCryptographicHash::Algorithm alg) const = 0;
 
     bool error() const { return mError; }
@@ -44,14 +28,12 @@ public:
     bool operator==(bool stt) { return mNull != stt; }
     bool operator!=(bool stt) { return !operator ==(stt); }
 
-    virtual QMap<QString, QVariant> toMap() const = 0;
-    QString toJson(QJsonDocument::JsonFormat format = QJsonDocument::Indented) const {
-        return QJsonDocument::fromVariant( toMap() ).toJson(format);
-    }
-
     static qint64 constructedCount() {
         return mConstructedCount;
     }
+
+    virtual QMap<QString, QVariant> toMap() const = 0;
+    virtual void fromMap(const QMap<QString, QVariant> &map) = 0;
 
 protected:
     void setError(bool stt) { mError = stt; }

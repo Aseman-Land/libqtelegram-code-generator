@@ -228,7 +228,7 @@ void TypeObjectGenerator::writeTypeHeader(const QString &name, const QList<Gener
             const GeneratorTypes::ArgStruct &arg = mi.value();
             QString argName = arg.argName;
             if(properties[pi.key()].count() > 1 && arg.type.name.toLower() != arg.argName.toLower())
-                argName = arg.argName + "_" + QString(arg.type.originalType).remove(classCaseType(arg.argName));
+                argName = arg.argName + "_" + QString(arg.type.originalType).remove(classCaseType(arg.argName)).remove("<").remove(">");
 
             const QString &cammelCase = cammelCaseType(argName);
             const QString &classCase = classCaseType(argName);
@@ -359,7 +359,7 @@ QString TypeObjectGenerator::writeTypeClass(const QString &name, const QList<Gen
             QString argName = arg.argName;
             if(properties[pi.key()].count() > 1 && arg.type.name.toLower() != arg.argName.toLower())
             {
-                argName = arg.argName + "_" + QString(arg.type.originalType).remove(classCaseType(arg.argName));
+                argName = arg.argName + "_" + QString(arg.type.originalType).remove(classCaseType(arg.argName)).remove("<").remove(">");
 
                 for(int i=0; i<modifiedTypes.count(); i++)
                 {

@@ -88,7 +88,7 @@ void CoreTypesGenerator::write(const QMap<QString, QString> &map, const QString 
 void CoreTypesGenerator::writePri()
 {
     QString result = "\nCONFIG += c++11\n\ninclude(functions/functions.pri)"
-                     "\ninclude(types/types.pri)\ninclude(customtypes/customtypes.pri)\n"
+                     "\ninclude(types/types.pri)\ninclude(customtypes/customtypes.pri)\ninclude(bottypes/bottypes.pri)\n"
                      "\ncontains(CONFIG, typeobjects) {\n"
                      "    include(objects/typeobjects.pri)\n}\n\n";
 

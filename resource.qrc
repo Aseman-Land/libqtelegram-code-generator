@@ -13,5 +13,7 @@
         <file>embeds/telegramcore_globals.h</file>
         <file>embeds/telegramcustomtypeobject.cpp</file>
         <file>embeds/telegramcustomtypeobject.h</file>
+        <file>embeds/telegrambottypeobject.cpp</file>
+        <file>embeds/telegrambottypeobject.h</file>
     </qresource>
 </RCC>

@@ -1,4 +1,4 @@
-#include "typegenerator.h"
+#include "bottypesgenerator.h"
 
 #include <QStringList>
 #include <QRegExp>
@@ -7,185 +7,22 @@
 #include <QDir>
 #include <QDebug>
 
-TypeGenerator::TypeGenerator(const QString &dest, bool inlineMode) :
+BotTypesGenerator::BotTypesGenerator(const QString &dest, bool inlineMode) :
     m_dst(dest),
     m_inlineMode(inlineMode)
 {
 
 }
 
-TypeGenerator::~TypeGenerator()
+BotTypesGenerator::~BotTypesGenerator()
 {
 
 }
 
-QString TypeGenerator::typeToFetchFunction(const QString &arg, const QString &type, const GeneratorTypes::ArgStruct &argStruct, bool forcePointer)
+QString BotTypesGenerator::streamReadFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
-    QString result;
-    QString baseResult;
-
-    if(type == "qint32")
-        baseResult += arg + " = in->fetchInt();";
-    else
-    if(type == "bool")
-        baseResult += arg + " = in->fetchBool();";
-    else
-    if(type == "qint64")
-        baseResult += arg + " = in->fetchLong();";
-    else
-    if(type == "qreal")
-        baseResult += arg + " = in->fetchDouble();";
-    else
-    if(type == "QByteArray")
-        baseResult += arg + " = in->fetchBytes();";
-    else
-    if(type == "QString")
-        baseResult += arg + " = in->fetchQString();";
-    else
-    if(type.contains("QList<"))
-    {
-        QString innerType = type.mid(6,type.length()-7);
-        baseResult += "if(in->fetchInt() != (qint32)CoreTypes::typeVector) return false;\n";
-
-        baseResult += "qint32 " + arg + "_length = in->fetchInt();\n";
-        baseResult += arg + ".clear();\n";
-        baseResult += "for (qint32 i = 0; i < " + arg + "_length; i++) {\n";
-        baseResult += "    " + innerType + " type;\n    " + typeToFetchFunction("type", innerType, argStruct, false) + "\n";
-        baseResult += QString("    %1.append(type);\n}").arg(arg);
-    }
-    else
-    {
-        if(forcePointer)
-            baseResult += QString("if(!%1) %1 = new %2();\n%1->fetch(in);").arg(arg, type);
-        else
-            baseResult += arg + ".fetch(in);";
-    }
-
-    if(!argStruct.flagName.isEmpty())
-    {
-        result += QString("if(m_%1 & 1<<%2) ").arg(argStruct.flagName).arg(argStruct.flagValue);
-        baseResult = "{\n" + shiftSpace(baseResult, 1) + "}";
-    }
-
-    result += baseResult;
-    return result;
-}
-
-QString TypeGenerator::fetchFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
-{
-    QString result = "LQTG_FETCH_LOG;\nint x = in->fetchInt();\nswitch(x) {\n";
-
-    QSet<QString> addedCodes;
-    foreach(const GeneratorTypes::TypeStruct &t, types)
-    {
-        if(addedCodes.contains(t.typeCode)) continue; else addedCodes.insert(t.typeCode);
-        result += QString("case %1: {\n").arg(t.typeName);
-
-        QString fetchPart;
-        foreach(const GeneratorTypes::ArgStruct &arg, t.args)
-        {
-            if(arg.flagDedicated)
-                continue;
-
-            bool forcePointer = (name == arg.type.name);
-            fetchPart += typeToFetchFunction("m_" + cammelCaseType(arg.argName), arg.type.name, arg, forcePointer) + "\n";
-        }
-
-        fetchPart += QString("m_classType = static_cast<%1ClassType>(x);\nreturn true;\n").arg(classCaseType(name));
-        result += shiftSpace(fetchPart, 1);
-        result += "}\n    break;\n\n";
-    }
-
-    result += "default:\n    LQTG_FETCH_ASSERT;\n    return false;\n}\n";
-    return result;
-}
-
-QString TypeGenerator::typeToPushFunction(const QString &arg, const QString &type, const GeneratorTypes::ArgStruct &argStruct, bool forcePointer)
-{
-    QString result;
-    QString baseResult;
-
-    if(type == "qint32")
-        baseResult += "out->appendInt(" + arg + ");";
-    else
-    if(type == "bool")
-        baseResult += "out->appendBool(" + arg + ");";
-    else
-    if(type == "qint64")
-        baseResult += "out->appendLong(" + arg + ");";
-    else
-    if(type == "qreal")
-        baseResult += "out->appendDouble(" + arg + ");";
-    else
-    if(type == "QByteArray")
-        baseResult += "out->appendBytes(" + arg + ");";
-    else
-    if(type == "QString")
-        baseResult += "out->appendQString(" + arg + ");";
-    else
-    if(type.contains("QList<"))
-    {
-        QString innerType = type.mid(6,type.length()-7);
-        baseResult += "out->appendInt(CoreTypes::typeVector);\n";
-
-        GeneratorTypes::ArgStruct tmpArg = argStruct;
-        tmpArg.flagName.clear();
-
-        baseResult += "out->appendInt(" + arg + ".count());\n";
-        baseResult += "for (qint32 i = 0; i < " + arg + ".count(); i++) {\n";
-        baseResult += "    " + typeToPushFunction(arg + "[i]", innerType, tmpArg, false) + "\n}";
-    }
-    else
-    {
-        if(forcePointer)
-            baseResult += QString("if(%1) %1->push(out);\nelse %2().push(out);").arg(arg, type);
-        else
-            baseResult += arg + ".push(out);";
-    }
-
-    if(!argStruct.flagName.isEmpty())
-    {
-        result += QString("if(m_%1 & 1<<%2) ").arg(argStruct.flagName).arg(argStruct.flagValue);
-        baseResult = "{\n" + shiftSpace(baseResult, 1) + "}";
-    }
-
-    result += baseResult;
-    return result;
-}
-
-QString TypeGenerator::pushFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
-{
-    Q_UNUSED(name)
-    QString result = "out->appendInt(m_classType);\nswitch(m_classType) {\n";
-
-    QSet<QString> addedCodes;
-    foreach(const GeneratorTypes::TypeStruct &t, types)
-    {
-        if(addedCodes.contains(t.typeCode)) continue; else addedCodes.insert(t.typeCode);
-        result += QString("case %1: {\n").arg(t.typeName);
-
-        QString fetchPart;
-        foreach(const GeneratorTypes::ArgStruct &arg, t.args)
-        {
-            if(arg.flagDedicated)
-                continue;
-
-            bool forcePointer = (name == arg.type.name);
-            fetchPart += typeToPushFunction("m_" + cammelCaseType(arg.argName), arg.type.name, arg, forcePointer) + "\n";
-        }
-
-        fetchPart += "return true;\n";
-        result += shiftSpace(fetchPart, 1);
-        result += "}\n    break;\n\n";
-    }
-
-    result += "default:\n    return false;\n}\n";
-    return result;
-}
-
-QString TypeGenerator::streamReadFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
-{
-    QString result = QString("uint type = 0;\nstream >> type;\n"
+    QString result = QString("if(item.isNull()) return stream;\n"
+                             "uint type = 0;\nstream >> type;\n"
                              "item.setClassType(static_cast<%1::%1ClassType>(type));\n"
                              "switch(type) {\n").arg(name);
 
@@ -213,10 +50,11 @@ QString TypeGenerator::streamReadFunction(const QString &name, const QList<Gener
     return result;
 }
 
-QString TypeGenerator::streamWriteFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
+QString BotTypesGenerator::streamWriteFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
     Q_UNUSED(name)
-    QString result = "stream << static_cast<uint>(item.classType());\nswitch(item.classType()) {\n";
+    QString result = "if(item.isNull()) return stream;\n"
+                     "stream << static_cast<uint>(item.classType());\nswitch(item.classType()) {\n";
 
     QSet<QString> addedCodes;
     foreach(const GeneratorTypes::TypeStruct &t, types)
@@ -241,9 +79,10 @@ QString TypeGenerator::streamWriteFunction(const QString &name, const QList<Gene
     return result;
 }
 
-QString TypeGenerator::debugFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
+QString BotTypesGenerator::debugFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
-    QString result = "QDebugStateSaver saver(debug);\nQ_UNUSED(saver)\n"
+    QString result = "if(item.isNull()) return debug;\n"
+                     "QDebugStateSaver saver(debug);\nQ_UNUSED(saver)\n"
                      "debug.nospace() << \"Telegram." + name + "(\";\n"
                      "switch(item.classType()) {\n";
 
@@ -271,7 +110,7 @@ QString TypeGenerator::debugFunction(const QString &name, const QList<GeneratorT
     return result;
 }
 
-QString TypeGenerator::typeMapReadFunction(const QString &arg, const QString &type, const QString &prepend, const GeneratorTypes::ArgStruct &argStruct, bool forcePointer)
+QString BotTypesGenerator::typeMapReadFunction(const QString &arg, const QString &type, const QString &prepend, const GeneratorTypes::ArgStruct &argStruct, bool forcePointer)
 {
     Q_UNUSED(forcePointer)
     QString result;
@@ -289,11 +128,21 @@ QString TypeGenerator::typeMapReadFunction(const QString &arg, const QString &ty
         if(isList)
             baseResult += QString("%1.value<%2>();").arg(prepend, type);
         else
-            baseResult += QString("QVariant _%4_var = %2;\n"
-                                  "if( !_%4_var.isNull() ) {\n"
-                                  "    _%4_var.convert( QVariant::nameToType(\"%3\") );\n"
-                                  "    result.set%1( _%4_var.value<%3>() );\n"
-                                  "}\n").arg(classCaseType(arg), prepend, type, arg);
+            baseResult += QString("set%1( %2.value<%3>() );").arg(classCaseType(arg), prepend, type);
+    }
+    else
+    if(type.contains("QList<QList<"))
+    {
+        QString innerType = type.mid(12,type.length()-14);
+        baseResult += QString("QList<QVariant> map_%1 = map[\"%1\"].toList();\n").arg(arg);
+
+        baseResult += QString("%1 _%2;\n").arg(type, arg);
+        baseResult += QString("for(const QVariant &var: map_%1) {\n").arg(arg);
+        baseResult += QString("    QList<%2> _%1_list;\n"
+                              "    QList<QVariant> map2_%1 = var.toList();\n"
+                              "    for(const QVariant &var: map2_%1)\n").arg(arg, innerType);
+        baseResult += QString("        _%1_list << %2;\n    _%1 << _%1_list;\n}\n").arg(arg).arg(typeMapReadFunction("_type", innerType, "var", argStruct, false));
+        baseResult += QString("set%1(_%2);").arg(classCaseType(arg), arg);
     }
     else
     if(type.contains("QList<"))
@@ -304,30 +153,28 @@ QString TypeGenerator::typeMapReadFunction(const QString &arg, const QString &ty
         baseResult += QString("%1 _%2;\n").arg(type, arg);
         baseResult += QString("for(const QVariant &var: map_%1)\n").arg(arg);
         baseResult += QString("    _%1 << ").arg(arg) + typeMapReadFunction("_type", innerType, "var", argStruct, false) + ";\n";
-        baseResult += QString("result.set%1(_%2);").arg(classCaseType(arg), arg);
+        baseResult += QString("set%1(_%2);").arg(classCaseType(arg), arg);
     }
     else
     {
         if(isList)
-            baseResult += QString("%1::fromMap(%2.toMap())").arg(type, prepend);
+            baseResult += QString("%2.toMap()").arg(prepend);
         else
-            baseResult += QString("QVariant _%4_var = %3;\n"
-                                  "if( !_%4_var.isNull() )\n"
-                                  "    result.set%1( %2::fromMap(_%4_var.toMap()) );\n").arg(classCaseType(arg), type, prepend, arg);
+            baseResult += QString("set%1( %2.toMap() );").arg(classCaseType(arg), prepend);
     }
 
     result += baseResult;
     return result;
 }
 
-QString TypeGenerator::mapReadFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
+QString BotTypesGenerator::mapReadFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
-    QString result = QString("%1 result;\n").arg(classCaseType(name));
+    QString result = "setNull(map.isEmpty());\n";
 
     foreach(const GeneratorTypes::TypeStruct &t, types)
     {
-        result += QString("if(map.value(\"classType\").toString() == \"%1::%2\") {\n").arg(classCaseType(name), t.typeName);
-        result += QString("    result.setClassType(%1);\n").arg(t.typeName);
+//        result += QString("if(map.value(\"classType\").toString() == \"%1::%2\") {\n").arg(classCaseType(name), t.typeName);
+        result += QString("setClassType(%1);\n").arg(t.typeName);
 
         QString fetchPart;
         foreach(const GeneratorTypes::ArgStruct &arg, t.args)
@@ -338,19 +185,14 @@ QString TypeGenerator::mapReadFunction(const QString &name, const QList<Generato
             const QString &argName = cammelCaseType(arg.argName);
 
             bool forcePointer = (name == arg.type.name);
-            fetchPart += typeMapReadFunction(argName, arg.type.name, QString("map.value(\"%1\")").arg(argName), arg, forcePointer) + "\n";
+            result += typeMapReadFunction(argName, arg.type.name, QString("map.value(\"%1\")").arg(arg.argName), arg, forcePointer) + "\n";
         }
-
-        fetchPart += QString("return result;\n");
-        result += shiftSpace(fetchPart, 1);
-        result += "}\n";
     }
 
-    result += "return result;\n";
     return result;
 }
 
-QString TypeGenerator::typeMapWriteFunction(const QString &arg, const QString &type, const QString &prepend, const GeneratorTypes::ArgStruct &argStruct, bool forcePointer)
+QString BotTypesGenerator::typeMapWriteFunction(const QString &arg, const QString &type, const QString &prepend, const GeneratorTypes::ArgStruct &argStruct, bool forcePointer)
 {
     QString result;
     QString baseResult;
@@ -365,16 +207,22 @@ QString TypeGenerator::typeMapWriteFunction(const QString &arg, const QString &t
        type == "QByteArray")
     {
         if(isList)
-            baseResult += QString("%1 QVariant::fromValue<%3>(m_%2);").arg(prepend, arg, type);
-        else {
-            if(type == "qint32" ||
-               type == "qint64" ||
-               type == "bool" ||
-               type == "qreal")
-                baseResult += QString("if( %2() ) %1 QString::number(%2());").arg(prepend, arg);
-            else
-                baseResult += QString("if( !m_%2.isEmpty() ) %1 QVariant::fromValue<%3>(m_%2);").arg(prepend, arg, type);
-        }
+            baseResult += prepend + QString(" QVariant::fromValue<%2>(m_%1);").arg(arg, type);
+        else
+            baseResult += prepend + QString(" QVariant::fromValue<%2>(%1());").arg(arg, type);
+    }
+    else
+    if(type.contains("QList<QList<"))
+    {
+        QString innerType = type.mid(12,type.length()-14);
+        baseResult += QString("QList<QVariant> _%1;\n").arg(arg);
+
+        baseResult += QString("for(const QList<%1> &m__type: m_%2) {\n"
+                              "    QList<QVariant> _%2_2;\n"
+                              "    for(const %1 &m__type2: m__type)\n").arg(innerType, arg);
+        baseResult += "        " + typeMapWriteFunction("_type2", innerType, QString("_%1_2 <<").arg(arg), argStruct, false);
+        baseResult += QString("\n    _%1 << QVariant::fromValue< QList<QVariant> >(_%1_2);\n}\n").arg(arg);
+        baseResult += prepend + QString(" _%1;").arg(arg);
     }
     else
     if(type.contains("QList<"))
@@ -391,14 +239,14 @@ QString TypeGenerator::typeMapWriteFunction(const QString &arg, const QString &t
         if(forcePointer)
             baseResult += prepend + QString(" (m_%1? *m_%1 : %2()).toMap();").arg(arg, type);
         else
-            baseResult += QString("if( !m_%2.isNull() ) %1 m_%2.toMap();").arg(prepend, arg);
+            baseResult += prepend + QString(" m_%1.toMap();").arg(arg);
     }
 
     result += baseResult;
     return result;
 }
 
-QString TypeGenerator::mapWriteFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
+QString BotTypesGenerator::mapWriteFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
     QString result = "QMap<QString, QVariant> result;\nswitch(static_cast<int>(m_classType)) {\n";
 
@@ -418,7 +266,7 @@ QString TypeGenerator::mapWriteFunction(const QString &name, const QList<Generat
             const QString &argName = cammelCaseType(arg.argName);
 
             bool forcePointer = (name == arg.type.name);
-            fetchPart += typeMapWriteFunction(argName, arg.type.name, QString("result[\"%1\"] =").arg(argName), arg, forcePointer) + "\n";
+            fetchPart += typeMapWriteFunction(argName, arg.type.name, QString("result[\"%1\"] =").arg(arg.argName), arg, forcePointer) + "\n";
         }
 
         fetchPart += QString("return result;\n");
@@ -430,12 +278,12 @@ QString TypeGenerator::mapWriteFunction(const QString &name, const QList<Generat
     return result;
 }
 
-void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
+void BotTypesGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
-    const QString &clssName = classCaseType(name);
+    const QString &clssName = "Bot" + classCaseType(name);
 
     QString result;
-    result += QString("class LIBQTELEGRAMSHARED_EXPORT %1 : public TelegramTypeObject\n{\npublic:\n"
+    result += QString("class LIBQTELEGRAMSHARED_EXPORT %1 : public TelegramBotTypeObject\n{\npublic:\n"
                       "    enum %1ClassType {\n").arg(clssName);
 
     QString defaultType;
@@ -465,15 +313,15 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
         }
     }
 
-    result += QString("    %1(%1ClassType classType = %2, InboundPkt *in = 0);\n").arg(clssName, defaultType);
-    result += QString("    %1(InboundPkt *in);\n    %1(const Null&);\n"
+    result += QString("    %1(const QMap<QString, QVariant> &map);\n    %1(const Null &_null = TelegramBotTypeObject::null);\n"
                       "    %1(const %1 &another);\n    virtual ~%1();\n\n").arg(clssName);
 
     QString privateResult = "private:\n";
-    QString includes = "#include \"telegramtypeobject.h\"\n\n#include <QMetaType>\n#include <QVariant>\n";
+    QString includes = "#include \"telegrambottypeobject.h\"\n\n#include <QMetaType>\n#include <QVariant>\n";
     includes +=
             "#include \"../coretypes.h\"\n\n"
-            "#include <QDataStream>\n\n";
+            "#include <QDataStream>\n"
+            "#include <QDebug>\n\n";
 
     QSet<QString> addedIncludes;
 
@@ -520,9 +368,7 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
     privateResult += QString("    %1ClassType m_classType;\n").arg(clssName);
 
     result += QString("    void setClassType(%1ClassType classType);\n    %1ClassType classType() const;\n\n").arg(clssName);
-    result += "    bool fetch(InboundPkt *in);\n    bool push(OutboundPkt *out) const;\n\n";
-    result += QString("    QMap<QString, QVariant> toMap() const;\n    static %1 fromMap(const QMap<QString, QVariant> &map);\n"
-                      "    static %1 fromJson(const QString &json);\n\n").arg(clssName);
+    result += QString("    QMap<QString, QVariant> toMap() const;\n    void fromMap(const QMap<QString, QVariant> &map);\n");
     result += QString("    bool operator ==(const %1 &b) const;\n"
                       "    %1 &operator =(const %1 &b);\n\n").arg(clssName);
     result += "    bool operator==(bool stt) const { return isNull() != stt; }\n"
@@ -540,8 +386,8 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
     if(m_inlineMode)
         result += writeTypeClass(name, types) + "\n";
 
-    result = QString("#ifndef LQTG_TYPE_%1\n#define LQTG_TYPE_%1\n\n").arg(clssName.toUpper()) + result;
-    result += QString("#endif // LQTG_TYPE_%1\n").arg(clssName.toUpper());
+    result = QString("#ifndef LQTG_BOT_TYPE_%1\n#define LQTG_BOT_TYPE_%1\n\n").arg(clssName.toUpper()) + result;
+    result += QString("#endif // LQTG_BOT_TYPE_%1\n").arg(clssName.toUpper());
 
     QFile file(m_dst + "/" + clssName.toLower() + ".h");
     if(!file.open(QFile::WriteOnly))
@@ -552,9 +398,9 @@ void TypeGenerator::writeTypeHeader(const QString &name, const QList<GeneratorTy
     file.close();
 }
 
-QString TypeGenerator::writeTypeClass(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
+QString BotTypesGenerator::writeTypeClass(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
-    const QString &clssName = classCaseType(name);
+    const QString &clssName = "Bot" + classCaseType(name);
 
     QString preFnc;
     if(m_inlineMode)
@@ -566,8 +412,6 @@ QString TypeGenerator::writeTypeClass(const QString &name, const QList<Generator
 
     QString headers;
     headers += QString("#include \"%1.h\"\n").arg(clssName.toLower()) +
-        "#include \"core/inboundpkt.h\"\n"
-        "#include \"core/outboundpkt.h\"\n"
         "#include \"../coretypes.h\"\n\n"
         "#include <QDataStream>\n\n";
 
@@ -667,11 +511,8 @@ QString TypeGenerator::writeTypeClass(const QString &name, const QList<Generator
                         flagPart = QString("\n    if(%1.length()) m_%2 = (m_%2 | (1<<%3));\n"
                                            "    else m_%2 = (m_%2 & ~(1<<%3));").arg(cammelCase, arg.flagName).arg(arg.flagValue);
                     else
-                    if(arg.type.qtgType || arg.type.constRefrence)
+                    if(arg.type.qtgType)
                         flagPart = QString("\n    if(!%1.isNull()) m_%2 = (m_%2 | (1<<%3));\n"
-                                           "    else m_%2 = (m_%2 & ~(1<<%3));").arg(cammelCase, arg.flagName).arg(arg.flagValue);
-                    else
-                        flagPart = QString("\n    if(%1) m_%2 = (m_%2 | (1<<%3));\n"
                                            "    else m_%2 = (m_%2 & ~(1<<%3));").arg(cammelCase, arg.flagName).arg(arg.flagValue);
                 }
 
@@ -694,16 +535,13 @@ QString TypeGenerator::writeTypeClass(const QString &name, const QList<Generator
     resultEqualTestOperator += ";";
     resultEqualOperator += "setNull(b.isNull());\nreturn *this;\n";
 
-    classResult += preFnc + QString("%1::%1(%1ClassType classType, InboundPkt *in) :\n").arg(clssName);
-    classResult += resultTypes + QString("    m_classType(classType)\n");;
-    classResult += "{\n    if(in) fetch(in);\n}\n\n";
-    classResult += preFnc + QString("%1::%1(InboundPkt *in) :\n").arg(clssName);
+    classResult += preFnc + QString("%1::%1(const QMap<QString, QVariant> &map) :\n").arg(clssName);
     classResult += resultTypes + QString("    m_classType(%1)\n").arg(defaultType);
-    classResult += "{\n    fetch(in);\n}\n\n";
-    classResult += preFnc + QString("%1::%1(const %1 &another) :\n    TelegramTypeObject(),\n").arg(clssName);
+    classResult += "{\n    if(!map.isEmpty()) fromMap(map);\n}\n\n";
+    classResult += preFnc + QString("%1::%1(const %1 &another) :\n    TelegramBotTypeObject(),\n").arg(clssName);
     classResult += resultTypes + QString("    m_classType(%1)\n").arg(defaultType);
     classResult += "{\n    operator=(another);\n}\n\n";
-    classResult += preFnc + QString("%1::%1(const Null &null) :\n    TelegramTypeObject(null),\n").arg(clssName);
+    classResult += preFnc + QString("%1::%1(const Null &null) :\n    TelegramBotTypeObject(null),\n").arg(clssName);
     classResult += resultTypes + QString("    m_classType(%1)\n").arg(defaultType);
     classResult += "{\n}\n\n";
     classResult += preFnc + QString("%1::~%1() {\n%2}\n\n").arg(clssName, shiftSpace(deconstructor, 1));
@@ -713,11 +551,8 @@ QString TypeGenerator::writeTypeClass(const QString &name, const QList<Generator
 
     classResult += preFnc + QString("void %1::setClassType(%1::%1ClassType classType) {\n    m_classType = classType;\n}\n\n").arg(clssName);
     classResult += preFnc + QString("%1::%1ClassType %1::classType() const {\n    return m_classType;\n}\n\n").arg(clssName);
-    classResult += preFnc + QString("bool %1::fetch(InboundPkt *in) {\n%2}\n\n").arg(clssName, shiftSpace(fetchFunction(name, modifiedTypes), 1));
-    classResult += preFnc + QString("bool %1::push(OutboundPkt *out) const {\n%2}\n\n").arg(clssName, shiftSpace(pushFunction(name, modifiedTypes), 1));
-    classResult += preFnc + QString("QMap<QString, QVariant> %1::toMap() const {\n%2}\n\n").arg(clssName, shiftSpace(mapWriteFunction(name, modifiedTypes), 1));
-    classResult += preFnc + QString("%1 %1::fromMap(const QMap<QString, QVariant> &map) {\n%2}\n\n").arg(clssName, shiftSpace(mapReadFunction(name, modifiedTypes), 1));
-    classResult += preFnc + QString("%1 %1::fromJson(const QString &json) {\n    return %1::fromMap(QJsonDocument::fromJson(json.toUtf8()).toVariant().toMap());\n}\n\n").arg(clssName);
+    classResult += preFnc + QString("QMap<QString, QVariant> %1::toMap() const {\n%2}\n\n").arg(clssName, shiftSpace(mapWriteFunction(clssName, modifiedTypes), 1));
+    classResult += preFnc + QString("void %1::fromMap(const QMap<QString, QVariant> &map) {\n%2}\n\n").arg(clssName, shiftSpace(mapReadFunction(clssName, modifiedTypes), 1));
     classResult +=preFnc +  QString("QByteArray %1::getHash(QCryptographicHash::Algorithm alg) const {\n"
                                     "    QByteArray data;\n    QDataStream str(&data, QIODevice::WriteOnly);\n"
                                     "    str << *this;\n    return QCryptographicHash::hash(data, alg);\n}\n\n").arg(clssName);
@@ -747,33 +582,32 @@ QString TypeGenerator::writeTypeClass(const QString &name, const QList<Generator
     return result;
 }
 
-void TypeGenerator::writeType(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
+void BotTypesGenerator::writeType(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
     writeTypeHeader(name, types);
     if(!m_inlineMode)
         writeTypeClass(name, types);
 }
 
-void TypeGenerator::writePri(const QStringList &types)
+void BotTypesGenerator::writePri(const QStringList &types)
 {
     QString result = "\n";
-    QString headers = "HEADERS += \\\n    $$PWD/types.h \\\n    $$PWD/telegramtypeobject.h \\\n";
-    QString sources = "SOURCES += \\\n    $$PWD/telegramtypeobject.cpp \\\n";
+    QString headers = "HEADERS += \\\n    $$PWD/bottypes.h \\\n    $$PWD/telegrambottypeobject.h \\\n";
+    QString sources = "SOURCES += \\\n    $$PWD/telegrambottypeobject.cpp \\\n";
     for(int i=0; i<types.count(); i++)
     {
         const QString &t = classCaseType(types[i]);
         const bool last = (i == types.count()-1);
 
-        headers += QString(last? "    $$PWD/%1.h\n" : "    $$PWD/%1.h \\\n").arg(t.toLower());
+        headers += QString(last? "    $$PWD/bot%1.h\n" : "    $$PWD/bot%1.h \\\n").arg(t.toLower());
         if(!m_inlineMode)
-            sources += QString(last? "    $$PWD/%1.cpp\n" : "    $$PWD/%1.cpp \\\n").arg(t.toLower());
+            sources += QString(last? "    $$PWD/bot%1.cpp\n" : "    $$PWD/bot%1.cpp \\\n").arg(t.toLower());
     }
 
     result += headers + "\n";
     result += sources + "\n";
-//    result = result.replace("$$PWD","telegram/types");
 
-    QFile file(m_dst + "/types.pri");
+    QFile file(m_dst + "/bottypes.pri");
     if(!file.open(QFile::WriteOnly))
         return;
 
@@ -782,16 +616,16 @@ void TypeGenerator::writePri(const QStringList &types)
     file.close();
 }
 
-void TypeGenerator::writeMainHeader(const QStringList &types)
+void BotTypesGenerator::writeMainHeader(const QStringList &types)
 {
-    QString result = "\n#include \"telegramtypeobject.h\"\n";
+    QString result = "\n#include \"telegrambottypeobject.h\"\n";
     for(int i=0; i<types.count(); i++)
     {
         const QString &t = classCaseType(types[i]);
-        result += QString("#include \"%1.h\"\n").arg(t.toLower());
+        result += QString("#include \"bot%1.h\"\n").arg(t.toLower());
     }
 
-    QFile file(m_dst + "/types.h");
+    QFile file(m_dst + "/bottypes.h");
     if(!file.open(QFile::WriteOnly))
         return;
 
@@ -800,26 +634,26 @@ void TypeGenerator::writeMainHeader(const QStringList &types)
     file.close();
 }
 
-void TypeGenerator::copyEmbeds()
+void BotTypesGenerator::copyEmbeds()
 {
-    const QString &fcpp = m_dst + "/telegramtypeobject.cpp";
+    const QString &fcpp = m_dst + "/telegrambottypeobject.cpp";
     QFile::remove(fcpp);
-    QFile::copy(":/embeds/telegramtypeobject.cpp", fcpp);
+    QFile::copy(":/embeds/telegrambottypeobject.cpp", fcpp);
     QFile(fcpp).setPermissions(QFileDevice::ReadUser|QFileDevice::WriteUser|
                                   QFileDevice::ReadGroup|QFileDevice::WriteGroup);
 
-    const QString &fh = m_dst + "/telegramtypeobject.h";
+    const QString &fh = m_dst + "/telegrambottypeobject.h";
     QFile::remove(fh);
-    QFile::copy(":/embeds/telegramtypeobject.h", fh);
+    QFile::copy(":/embeds/telegrambottypeobject.h", fh);
     QFile(fh).setPermissions(QFileDevice::ReadUser|QFileDevice::WriteUser|
                                   QFileDevice::ReadGroup|QFileDevice::WriteGroup);
 }
 
-void TypeGenerator::extract(const QString &data)
+void BotTypesGenerator::extract(const QString &data)
 {
     QDir().mkpath(m_dst);
 
-    QMap<QString, QList<GeneratorTypes::TypeStruct> > types = extractTypes(data, QString(), QString(), "types");
+    QMap<QString, QList<GeneratorTypes::TypeStruct> > types = extractTypes(data, QString(), QString(), "bottypes", "Bot");
     QMapIterator<QString, QList<GeneratorTypes::TypeStruct> > i(types);
     while(i.hasNext())
     {

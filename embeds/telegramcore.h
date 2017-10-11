@@ -14,7 +14,6 @@
 #include <typeinfo>
 #include <utility>
 
-#include "telegramapi.h"
 #include "telegramcore_globals.h"
 #include "libqtelegram_global.h"
 
@@ -90,14 +89,17 @@ protected:
     }
 
     template<typename T>
-    Callback<T> callBackGet(qint64 msgId) {
-        return mCallbacks.value(msgId).getCallback<T>();
-    }
+    Callback<T> callBackGet(qint64 msgId);
 
     template<typename T>
-    void callBackCall(qint64 msgId, const T &result, const CallbackError &error = CallbackError()) {
-        auto cbs = mCallbacks.take(msgId);
-        cbs(msgId, result, error);
+    void callBackCall(qint64 msgId, const T &result, const CallbackError &error = CallbackError(), bool remove = true) {
+        if(remove) {
+            auto cbs = mCallbacks.take(msgId);
+            cbs(msgId, result, error);
+        } else {
+            auto cbs = mCallbacks.value(msgId);
+            cbs(msgId, result, error);
+        }
     }
 
 private:
@@ -172,5 +174,10 @@ private:
     const std::type_info* m_argResType;
     std::shared_ptr<void> m_ptrCb;
 };
+
+template<typename T>
+TelegramCore::Callback<T> TelegramCore::callBackGet(qint64 msgId) {
+    return mCallbacks.value(msgId).getCallback<T>();
+}
 
 #endif // TELEGRAMCORE_H

@@ -46,7 +46,6 @@ void DatabaseGenerator::extractTypes(const QString &data)
         count++;
     }
 
-    qDebug() << count;
     QFile file(tdst + "/database.sql");
     if(!file.open(QFile::WriteOnly))
         return;

@@ -1,5 +1,5 @@
-#ifndef TYPEGENERATOR_H
-#define TYPEGENERATOR_H
+#ifndef BOTTYPESGENERATOR_H
+#define BOTTYPESGENERATOR_H
 
 #include "abstractgenerator.h"
 
@@ -8,19 +8,15 @@
 #include <QMap>
 #include <QSet>
 
-class TypeGenerator : public AbstractGenerator
+class BotTypesGenerator : public AbstractGenerator
 {
 public:
-    TypeGenerator(const QString &dest, bool inlineMode = false);
-    ~TypeGenerator();
+    BotTypesGenerator(const QString &dest, bool inlineMode = false);
+    ~BotTypesGenerator();
 
     void extract(const QString &data);
 
 protected:
-    QString typeToFetchFunction(const QString &arg, const QString &type, const GeneratorTypes::ArgStruct &argStruct, bool forcePointer);
-    QString fetchFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
-    QString typeToPushFunction(const QString &arg, const QString &type, const GeneratorTypes::ArgStruct &argStruct, bool forcePointer);
-    QString pushFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     QString streamReadFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     QString streamWriteFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
     QString debugFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types);
@@ -40,4 +36,4 @@ private:
     bool m_inlineMode;
 };
 
-#endif // TYPEGENERATOR_H
+#endif // BOTTYPESGENERATOR_H
