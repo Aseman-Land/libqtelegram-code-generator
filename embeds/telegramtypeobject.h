@@ -8,19 +8,13 @@
 #define LQTG_FETCH_ASSERT setError(true)
 #define LQTG_PUSH_ASSERT setError(true)
 
-#ifdef _MSC_VER
-#define PRETTY_FUNCTION __FUNCSIG__
-#else
-#define PRETTY_FUNCTION __PRETTY_FUNCTION__
-#endif
-
 #ifndef LQTG_ENABLE_LOG
 #define LQTG_FETCH_LOG
 #define LQTG_PUSH_LOG
 #else
 #include <QDebug>
-#define LQTG_FETCH_LOG qDebug() << this << PRETTY_FUNCTION ;
-#define LQTG_PUSH_LOG qDebug() << this << PRETTY_FUNCTION;
+#define LQTG_FETCH_LOG qDebug() << this << Q_FUNC_INFO ;
+#define LQTG_PUSH_LOG qDebug() << this << Q_FUNC_INFO;
 #endif
 
 #include <QCryptographicHash>
