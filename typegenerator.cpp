@@ -389,7 +389,7 @@ QString TypeGenerator::typeMapWriteFunction(const QString &arg, const QString &t
     else
     {
         if(forcePointer)
-            baseResult += prepend + QString(" (m_%1? *m_%1 : %2()).toMap();").arg(arg, type);
+            baseResult += prepend + QString(" (m_%1 ? *m_%1 : %2()).toMap();").arg(arg, type);
         else
             baseResult += QString("if( !m_%2.isNull() ) %1 m_%2.toMap();").arg(prepend, arg);
     }
@@ -573,7 +573,7 @@ QString TypeGenerator::writeTypeClass(const QString &name, const QList<Generator
 
     QString resultTypes;
     QString resultEqualTestOperator = "return m_classType == b.m_classType";
-    QString resultEqualOperator = "m_classType = b.m_classType;\n";
+    QString resultAssignOperator = "m_classType = b.m_classType;\n";
 
     QString defaultType;
     QMap<QString, QMap<QString,GeneratorTypes::ArgStruct> > properties;
@@ -642,11 +642,11 @@ QString TypeGenerator::writeTypeClass(const QString &name, const QList<Generator
                 if(type.name == clssName)
                 {
                     resultTypes += QString("    m_%1(0),\n").arg(cammelCase);
-                    resultEqualOperator += QString("set%2(b.%1());\n").arg(cammelCase, classCase);
+                    resultAssignOperator += QString("set%2(b.m_%1 ? *b.m_%1 : %3(%3::null));\n").arg(cammelCase, classCase, clssName);
                 }
                 else
                 {
-                    resultEqualOperator += QString("m_%1 = b.m_%1;\n").arg(cammelCase);
+                    resultAssignOperator += QString("m_%1 = b.m_%1;\n").arg(cammelCase);
                 }
 
                 resultEqualTestOperator += QString(" &&\n       m_%1 == b.m_%1").arg(cammelCase);
@@ -680,7 +680,7 @@ QString TypeGenerator::writeTypeClass(const QString &name, const QList<Generator
                 if(type.name == clssName)
                 {
                     deconstructor += QString("if(m_%1) delete m_%1;\n").arg(cammelCase);
-                    readInner = "%3 %1::%2() const {\n    return m_%2? *m_%2 : %3(%3::null);\n}\n\n";
+                    readInner = "%3 %1::%2() const {\n    return m_%2 ? *m_%2 : %3(%3::null);\n}\n\n";
 
                     QString equalCheck = "    if(%4.isNull()) {\n        if(m_%4) delete m_%4;\n"
                                 "        m_%4 = 0;\n        return;\n    }";
@@ -692,7 +692,8 @@ QString TypeGenerator::writeTypeClass(const QString &name, const QList<Generator
         }
     }
     resultEqualTestOperator += ";";
-    resultEqualOperator += "setNull(b.isNull());\nreturn *this;\n";
+    resultAssignOperator += "setNull(b.isNull());\n";
+    resultAssignOperator = "if(&b != this) {\n" + shiftSpace(resultAssignOperator, 1) + "}\nreturn *this;\n";
 
     classResult += preFnc + QString("%1::%1(%1ClassType classType, InboundPkt *in) :\n").arg(clssName);
     classResult += resultTypes + QString("    m_classType(classType)\n");;
@@ -709,7 +710,7 @@ QString TypeGenerator::writeTypeClass(const QString &name, const QList<Generator
     classResult += preFnc + QString("%1::~%1() {\n%2}\n\n").arg(clssName, shiftSpace(deconstructor, 1));
     classResult += functions;
     classResult += preFnc + QString("bool %1::operator ==(const %1 &b) const {\n%2}\n\n").arg(clssName, shiftSpace(resultEqualTestOperator, 1));
-    classResult += preFnc + QString("%1 &%1::operator =(const %1 &b) {\n%2}\n\n").arg(clssName, shiftSpace(resultEqualOperator, 1));
+    classResult += preFnc + QString("%1 &%1::operator =(const %1 &b) {\n%2}\n\n").arg(clssName, shiftSpace(resultAssignOperator, 1));
 
     classResult += preFnc + QString("void %1::setClassType(%1::%1ClassType classType) {\n    m_classType = classType;\n}\n\n").arg(clssName);
     classResult += preFnc + QString("%1::%1ClassType %1::classType() const {\n    return m_classType;\n}\n\n").arg(clssName);
