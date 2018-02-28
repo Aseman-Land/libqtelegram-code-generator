@@ -51,6 +51,7 @@ public:
         return mLastArgs;
     }
 
+public Q_SLOTS:
     virtual void init() = 0;
     bool isConnected() const;
 
