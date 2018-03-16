@@ -75,7 +75,7 @@ QString TypeObjectGenerator::typeToFetchFunction(const QString &arg, const QStri
 
 QString TypeObjectGenerator::fetchFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
-    QString result = "LQTG_FETCH_LOG;\nint x = in->fetchInt();\nswitch(x) {\n";
+    QString result = "LQTG_FETCH_LOG;\nqint64 x = in->fetchInt();\nswitch(x) {\n";
 
     QSet<QString> addedCodes;
     foreach(const GeneratorTypes::TypeStruct &t, types)

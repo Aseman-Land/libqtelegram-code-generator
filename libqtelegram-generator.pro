@@ -8,6 +8,7 @@ QT       += core
 QT       -= gui
 VERSION = 1.0.0
 CONFIG += c++11
+CONFIG -= app_bundle
 
 TARGET = libqtelegram-generator
 
