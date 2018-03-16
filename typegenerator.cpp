@@ -73,7 +73,7 @@ QString TypeGenerator::typeToFetchFunction(const QString &arg, const QString &ty
 
 QString TypeGenerator::fetchFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
-    QString result = "LQTG_FETCH_LOG;\nint x = in->fetchInt();\nswitch(x) {\n";
+    QString result = "LQTG_FETCH_LOG;\nqint64 x = in->fetchInt();\nswitch(x) {\n";
 
     QSet<QString> addedCodes;
     foreach(const GeneratorTypes::TypeStruct &t, types)
@@ -400,7 +400,7 @@ QString TypeGenerator::typeMapWriteFunction(const QString &arg, const QString &t
 
 QString TypeGenerator::mapWriteFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
-    QString result = "QMap<QString, QVariant> result;\nswitch(static_cast<int>(m_classType)) {\n";
+    QString result = "QMap<QString, QVariant> result;\nswitch(static_cast<qint64>(m_classType)) {\n";
 
     QSet<QString> addedCodes;
     foreach(const GeneratorTypes::TypeStruct &t, types)

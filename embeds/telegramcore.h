@@ -93,15 +93,7 @@ protected:
     Callback<T> callBackGet(qint64 msgId);
 
     template<typename T>
-    void callBackCall(qint64 msgId, const T &result, const CallbackError &error = CallbackError(), bool remove = true) {
-        if(remove) {
-            auto cbs = mCallbacks.take(msgId);
-            cbs(msgId, result, error);
-        } else {
-            auto cbs = mCallbacks.value(msgId);
-            cbs(msgId, result, error);
-        }
-    }
+    void callBackCall(qint64 msgId, const T &result, const CallbackError &error = CallbackError(), bool remove = true);
 
 private:
     class CallbackStore;
@@ -179,6 +171,17 @@ private:
 template<typename T>
 TelegramCore::Callback<T> TelegramCore::callBackGet(qint64 msgId) {
     return mCallbacks.value(msgId).getCallback<T>();
+}
+
+template<typename T>
+void TelegramCore::callBackCall(qint64 msgId, const T &result, const TelegramCore::CallbackError &error, bool remove) {
+    if(remove) {
+        auto cbs = mCallbacks.take(msgId);
+        cbs(msgId, result, error);
+    } else {
+        auto cbs = mCallbacks.value(msgId);
+        cbs(msgId, result, error);
+    }
 }
 
 #endif // TELEGRAMCORE_H
