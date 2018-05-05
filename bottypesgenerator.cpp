@@ -248,7 +248,7 @@ QString BotTypesGenerator::typeMapWriteFunction(const QString &arg, const QStrin
 
 QString BotTypesGenerator::mapWriteFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
-    QString result = "QMap<QString, QVariant> result;\nswitch(static_cast<qint64>(m_classType)) {\n";
+    QString result = "QMap<QString, QVariant> result;\nswitch(static_cast<qint32>(m_classType)) {\n";
 
     QSet<QString> addedCodes;
     foreach(const GeneratorTypes::TypeStruct &t, types)

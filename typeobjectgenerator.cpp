@@ -75,13 +75,13 @@ QString TypeObjectGenerator::typeToFetchFunction(const QString &arg, const QStri
 
 QString TypeObjectGenerator::fetchFunction(const QString &name, const QList<GeneratorTypes::TypeStruct> &types)
 {
-    QString result = "LQTG_FETCH_LOG;\nqint64 x = in->fetchInt();\nswitch(x) {\n";
+    QString result = "LQTG_FETCH_LOG;\nqint32 x = in->fetchInt();\nswitch(x) {\n";
 
     QSet<QString> addedCodes;
     foreach(const GeneratorTypes::TypeStruct &t, types)
     {
         if(addedCodes.contains(t.typeCode)) continue; else addedCodes.insert(t.typeCode);
-        result += QString("case %1: {\n").arg(t.typeName);
+        result += QString("case (qint32)%1: {\n").arg(t.typeName);
 
         QString fetchPart;
         foreach(const GeneratorTypes::ArgStruct &arg, t.args)
