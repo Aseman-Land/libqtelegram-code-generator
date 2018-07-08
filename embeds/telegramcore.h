@@ -39,7 +39,7 @@ public:
     static CallbackError apiError() {
         CallbackError error;
         error.errorCode = -1;
-        error.errorText = "LIBQTELEGRAM_API_ERROR";
+        error.errorText = QStringLiteral("LIBQTELEGRAM_API_ERROR");
         error.null = false;
         return error;
     }

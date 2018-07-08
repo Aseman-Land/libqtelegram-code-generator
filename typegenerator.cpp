@@ -299,7 +299,7 @@ QString TypeGenerator::typeMapReadFunction(const QString &arg, const QString &ty
     if(type.contains("QList<"))
     {
         QString innerType = type.mid(6,type.length()-7);
-        baseResult += QString("QList<QVariant> map_%1 = map[\"%1\"].toList();\n").arg(arg);
+        baseResult += QString("QList<QVariant> map_%1 = map[QStringLiteral(\"%1\")].toList();\n").arg(arg);
 
         baseResult += QString("%1 _%2;\n").arg(type, arg);
         baseResult += QString("for(const QVariant &var: map_%1)\n").arg(arg);
@@ -326,7 +326,7 @@ QString TypeGenerator::mapReadFunction(const QString &name, const QList<Generato
 
     foreach(const GeneratorTypes::TypeStruct &t, types)
     {
-        result += QString("if(map.value(\"classType\").toString() == \"%1::%2\") {\n").arg(classCaseType(name), t.typeName);
+        result += QString("if(map.value(QStringLiteral(\"classType\")).toString() == QStringLiteral(\"%1::%2\")) {\n").arg(classCaseType(name), t.typeName);
         result += QString("    result.setClassType(%1);\n").arg(t.typeName);
 
         QString fetchPart;
@@ -338,7 +338,7 @@ QString TypeGenerator::mapReadFunction(const QString &name, const QList<Generato
             const QString &argName = cammelCaseType(arg.argName);
 
             bool forcePointer = (name == arg.type.name);
-            fetchPart += typeMapReadFunction(argName, arg.type.name, QString("map.value(\"%1\")").arg(argName), arg, forcePointer) + "\n";
+            fetchPart += typeMapReadFunction(argName, arg.type.name, QString("map.value(QStringLiteral(\"%1\"))").arg(argName), arg, forcePointer) + "\n";
         }
 
         fetchPart += QString("return result;\n");
@@ -407,7 +407,7 @@ QString TypeGenerator::mapWriteFunction(const QString &name, const QList<Generat
     {
         if(addedCodes.contains(t.typeCode)) continue; else addedCodes.insert(t.typeCode);
         result += QString("case %1: {\n").arg(t.typeName);
-        result += QString("    result[\"classType\"] = \"%1::%2\";\n").arg(classCaseType(name), t.typeName);
+        result += QString("    result[QStringLiteral(\"classType\")] = QStringLiteral(\"%1::%2\");\n").arg(classCaseType(name), t.typeName);
 
         QString fetchPart;
         foreach(const GeneratorTypes::ArgStruct &arg, t.args)
@@ -418,7 +418,7 @@ QString TypeGenerator::mapWriteFunction(const QString &name, const QList<Generat
             const QString &argName = cammelCaseType(arg.argName);
 
             bool forcePointer = (name == arg.type.name);
-            fetchPart += typeMapWriteFunction(argName, arg.type.name, QString("result[\"%1\"] =").arg(argName), arg, forcePointer) + "\n";
+            fetchPart += typeMapWriteFunction(argName, arg.type.name, QString("result[QStringLiteral(\"%1\")] =").arg(argName), arg, forcePointer) + "\n";
         }
 
         fetchPart += QString("return result;\n");

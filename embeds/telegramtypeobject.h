@@ -46,7 +46,7 @@ public:
 
     virtual QMap<QString, QVariant> toMap() const = 0;
     QString toJson(QJsonDocument::JsonFormat format = QJsonDocument::Indented) const {
-        return QJsonDocument::fromVariant( toMap() ).toJson(format);
+        return QString::fromUtf8( QJsonDocument::fromVariant( toMap() ).toJson(format) );
     }
 
     static qint64 constructedCount() {

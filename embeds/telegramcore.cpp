@@ -36,7 +36,7 @@ qint64 TelegramCore::retry(qint64 mid)
     if(!mRecallArgs.contains(mid))
         return result;
     const QVariantHash &args = mRecallArgs.take(mid);
-    const QString &functionName = args.value("").toString();
+    const QString &functionName = args.value(QStringLiteral("")).toString();
     if(functionName.isEmpty())
         return result;
 /*! === retries === !*/

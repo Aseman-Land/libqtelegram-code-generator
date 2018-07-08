@@ -185,7 +185,7 @@ void TelegramCoreGenerator::writeCpp(const QMap<QString, QList<GeneratorTypes::F
             QString argumentNames;
             QString signatures;
             QString recallArgs;
-            QString recallStore = QString("mRecallArgs[msgId][\"\"] = \"%1\";\n").arg(functionName);
+            QString recallStore = QString("mRecallArgs[msgId][QStringLiteral(\"\")] = QStringLiteral(\"%1\");\n").arg(functionName);
 
             const QList<GeneratorTypes::ArgStruct> &args = t.type.args;
             foreach(const GeneratorTypes::ArgStruct &arg, args)
@@ -197,8 +197,8 @@ void TelegramCoreGenerator::writeCpp(const QMap<QString, QList<GeneratorTypes::F
                 if(!argumentNames.isEmpty())
                     argumentNames += ", ";
 
-                recallStore += QString("mRecallArgs[msgId][\"%1\"] = QVariant::fromValue<%2>(%1);\n").arg(arg.argName, arg.type.name);
-                recallArgs += QString("args[\"%1\"].value<%2>()").arg(arg.argName, arg.type.name);
+                recallStore += QString("mRecallArgs[msgId][QStringLiteral(\"%1\")] = QVariant::fromValue<%2>(%1);\n").arg(arg.argName, arg.type.name);
+                recallArgs += QString("args[QStringLiteral(\"%1\")].value<%2>()").arg(arg.argName, arg.type.name);
                 argumentNames += arg.argName;
                 signatures += arg.type.name;
                 if(arg.type.constRefrence)
@@ -250,7 +250,7 @@ void TelegramCoreGenerator::writeCpp(const QMap<QString, QList<GeneratorTypes::F
                            + QString("void TelegramCore::on%1Answer(qint64 msgId, %2, const QVariant &attachedData) {\n%3}\n\n").arg(classCase, returnArg, shiftSpace(answersInnter, 1))
                            + QString("void TelegramCore::on%1Error(qint64 msgId, qint32 errorCode, const QString &errorText, const QVariant &attachedData) {\n%2}\n").arg(classCase, shiftSpace(errorsInnter, 1));
 
-            retriesResult += QString("if(functionName == \"%1\") {\n    result = %1(%2);\n}").arg(functionName, recallArgs);
+            retriesResult += QString("if(functionName == QStringLiteral(\"%1\")) {\n    result = %1(%2);\n}").arg(functionName, recallArgs);
             if(retriesCount && retriesCount % 100 == 0) {
                 retriesResult += "\n#ifndef Q_CC_MSVC // break if-else chain on Microsoft compilers with nesting limits\n    else\n#endif\n";
             } else {

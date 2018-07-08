@@ -178,12 +178,12 @@ void ApiGenerator::writeCpp(const QMap<QString, QList<GeneratorTypes::FunctionSt
                                           "OutboundPkt p(mSettings);\n"
                                           "INIT_MAIN_CONNECTION(session)\n"
                                           "Functions::%1::%2(&p%3);\n"
-                                          "return session->sendQuery(p, &%4Methods, attachedData, \"%1->%2\" );").arg(name)
+                                          "return session->sendQuery(p, &%4Methods, attachedData, QStringLiteral(\"%1->%2\") );").arg(name)
                                   .arg(t.functionName).arg(argumentNames).arg(functionName);
 
             QString answersInnter = QString("%1 = Functions::%2::%3Result(&inboundPkt);\n" +
                                             QString(t.returnType.qtgType?
-                                            QString("if(result.error())\n    on%1Error(q, -1, \"LIBQTELEGRAM_INTERNAL_ERROR\");\n"
+                                            QString("if(result.error())\n    on%1Error(q, -1, QStringLiteral(\"LIBQTELEGRAM_INTERNAL_ERROR\"));\n"
                                             "else\n    ").arg(classCase):QString()) +
                                             "Q_EMIT %4Answer(q->mainMsgId(), result, q->extra());")
                                   .arg(returnArg, name, t.functionName, functionName);
